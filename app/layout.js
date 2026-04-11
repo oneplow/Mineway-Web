@@ -3,7 +3,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 
 export const metadata = {
-  title: "MCTunnel — Minecraft Server Gateway",
+  title: "Mineway — Minecraft Server Gateway",
   description: "Expose your Minecraft server to the internet through our secure VPS tunnel.",
 };
 

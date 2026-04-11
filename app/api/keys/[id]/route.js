@@ -22,9 +22,9 @@ export async function PATCH(req, { params }) {
     if (body.action === "reset") {
       const crypto = require("crypto");
       const rawSecret = crypto.randomBytes(24).toString("base64url");
-      const rawKey = `mct_live_${rawSecret}`;
+      const rawKey = `mw_live_${rawSecret}`;
       updateData.keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
-      updateData.prefix = `mct_live_${rawSecret.slice(0, 8)}`;
+      updateData.prefix = `mw_live_${rawSecret.slice(0, 8)}`;
       
       const updated = await prisma.apiKey.update({ where: { id }, data: updateData });
       return NextResponse.json({ ...updated, rxBytes: Number(updated.rxBytes), txBytes: Number(updated.txBytes), keyValue: rawKey });

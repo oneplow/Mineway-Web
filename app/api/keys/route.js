@@ -69,13 +69,13 @@ export async function POST(req) {
 
     // 1. Generate a cryptographically secure random key
     const rawSecret = crypto.randomBytes(24).toString("base64url");
-    const rawKey = `mct_live_${rawSecret}`;
+    const rawKey = `mw_live_${rawSecret}`;
 
     // 2. Hash the key before storing — never store plaintext
     const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
 
     // 3. Create a safe prefix for UI display (first 8 chars of secret)
-    const prefix = `mct_live_${rawSecret.slice(0, 8)}`;
+    const prefix = `mw_live_${rawSecret.slice(0, 8)}`;
 
     // 4. Allocate a dedicated port (TCP+UDP) — find highest used port and increment
     const PORT_START = parseInt(process.env.PORT_RANGE_START || "10000");

@@ -37,7 +37,7 @@ export default function Home() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#10d97e] to-[#0ea865] flex items-center justify-center text-white">
               <Pickaxe size={18} />
             </div>
-            <span className="font-syne font-bold text-lg text-gray-900 dark:text-[#e8ecf4] tracking-tight">MCTunnel</span>
+            <span className="font-syne font-bold text-lg text-gray-900 dark:text-[#e8ecf4] tracking-tight">Mineway</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -88,11 +88,11 @@ export default function Home() {
             <span className="ml-2 text-xs text-gray-500 dark:text-[#4a5568] font-mono">config.yml</span>
           </div>
           <div className="p-6 font-mono text-[13px] leading-[2.0] text-left">
-            <div><span className="text-gray-400 dark:text-[#4a5568]"># MCTunnel Plugin Configuration</span></div>
-            <div><span className="text-blue-500 dark:text-[#4d8fff]">api_key</span><span className="text-gray-400 dark:text-[#8892a4]">: </span><span className="text-[#10d97e]">&quot;mct_live_a8f2k9x1m3n7p4q6&quot;</span></div>
+            <div><span className="text-gray-400 dark:text-[#4a5568]"># Mineway Plugin Configuration</span></div>
+            <div><span className="text-blue-500 dark:text-[#4d8fff]">api_key</span><span className="text-gray-400 dark:text-[#8892a4]">: </span><span className="text-[#10d97e]">&quot;mw_live_a8f2k9x1m3n7p4q6&quot;</span></div>
             <div><span className="text-blue-500 dark:text-[#4d8fff]">region</span><span className="text-gray-400 dark:text-[#8892a4]">: </span><span className="text-amber-500 dark:text-[#f5c842]">&quot;ap-southeast-1&quot;</span></div>
             <div><span className="text-blue-500 dark:text-[#4d8fff]">auto_reconnect</span><span className="text-gray-400 dark:text-[#8892a4]">: </span><span className="text-purple-500 dark:text-[#9d6fff]">true</span></div>
-            <div className="mt-3"><span className="text-gray-400 dark:text-[#4a5568]">&gt; </span><span className="text-[#10d97e]">[MCTunnel] ✓ Tunnel established — play.yourserver.mctunnel.io</span></div>
+            <div className="mt-3"><span className="text-gray-400 dark:text-[#4a5568]">&gt; </span><span className="text-[#10d97e]">[Mineway] ✓ Tunnel established — play.yourserver.mineway.io</span></div>
           </div>
         </div>
       </section>
@@ -157,9 +157,9 @@ export default function Home() {
           <div className="w-6 h-6 rounded bg-gradient-to-br from-[#10d97e] to-[#0ea865] flex items-center justify-center text-white">
             <Pickaxe size={12} />
           </div>
-          <span className="font-syne font-bold text-gray-900 dark:text-[#e8ecf4]">MCTunnel</span>
+          <span className="font-syne font-bold text-gray-900 dark:text-[#e8ecf4]">Mineway</span>
         </div>
-        <p className="text-sm text-gray-500 dark:text-[#4a5568]">© 2025 MCTunnel. All rights reserved.</p>
+        <p className="text-sm text-gray-500 dark:text-[#4a5568]">© 2025 Mineway. All rights reserved.</p>
       </footer>
     </div>
   );

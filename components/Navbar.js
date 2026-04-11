@@ -33,7 +33,7 @@ export default function Navbar({ user }) {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#10d97e] to-[#0ea865] flex items-center justify-center text-white shadow-[0_0_10px_rgba(16,217,126,0.3)]">
               <Pickaxe size={16} />
             </div>
-            <span className="font-syne font-extrabold text-lg text-gray-900 dark:text-[#e8ecf4] tracking-tight">MCTunnel</span>
+            <span className="font-syne font-extrabold text-lg text-gray-900 dark:text-[#e8ecf4] tracking-tight">Mineway</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-1">

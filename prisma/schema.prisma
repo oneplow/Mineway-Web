@@ -9,6 +9,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
   id            String    @id @default(cuid())
   username      String?   @unique
@@ -17,6 +22,7 @@ model User {
   image         String?
   password      String?
   points        Int       @default(0)
+  role          Role      @default(USER)
   planId        String?
   plan          Plan?     @relation(fields: [planId], references: [id])
   accounts      Account[]
@@ -48,7 +54,7 @@ model ApiKey {
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name       String
-  prefix     String               // "mct_live_xK9p2mN8" — safe to show in UI
+  prefix     String               // "mw_live_xK9p2mN8" — safe to show in UI
   keyHash    String   @unique     // SHA-256 of the raw key — for verification only
   region     String   @default("ap-southeast-1")
   assignedPort Int?   @unique           // dedicated port for TCP+UDP (e.g. 10001)
