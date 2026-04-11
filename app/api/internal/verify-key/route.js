@@ -52,6 +52,7 @@ export async function POST(req) {
       valid: true,
       keyId: apiKey.id,
       userId: apiKey.userId,
+      assignedPort: apiKey.assignedPort,
       plan: plan?.name ?? "free",
       maxPlayers: plan?.maxPlayers ?? 5,
       bandwidthRemaining: plan

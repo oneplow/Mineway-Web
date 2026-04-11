@@ -22,6 +22,7 @@ export async function GET() {
       name: k.name,
       prefix: k.prefix,
       region: k.region,
+      assignedPort: k.assignedPort,
       status: k.status,
       rxBytes: Number(k.rxBytes),
       txBytes: Number(k.txBytes),
@@ -76,7 +77,16 @@ export async function POST(req) {
     // 3. Create a safe prefix for UI display (first 8 chars of secret)
     const prefix = `mct_live_${rawSecret.slice(0, 8)}`;
 
-    // 4. Store in DB — no raw key, only prefix + hash
+    // 4. Allocate a dedicated port (TCP+UDP) — find highest used port and increment
+    const PORT_START = parseInt(process.env.PORT_RANGE_START || "10000");
+    const lastKey = await prisma.apiKey.findFirst({
+      where: { assignedPort: { not: null } },
+      orderBy: { assignedPort: "desc" },
+      select: { assignedPort: true },
+    });
+    const assignedPort = lastKey?.assignedPort ? lastKey.assignedPort + 1 : PORT_START;
+
+    // 5. Store in DB — no raw key, only prefix + hash + port
     const newKey = await prisma.apiKey.create({
       data: {
         userId: session.user.id,
@@ -84,6 +94,7 @@ export async function POST(req) {
         prefix,
         keyHash,
         region: region || "ap-southeast-1",
+        assignedPort,
         status: "inactive",
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       },
@@ -95,6 +106,7 @@ export async function POST(req) {
       name: newKey.name,
       prefix: newKey.prefix,
       region: newKey.region,
+      assignedPort: newKey.assignedPort,
       status: newKey.status,
       rxBytes: Number(newKey.rxBytes),
       txBytes: Number(newKey.txBytes),

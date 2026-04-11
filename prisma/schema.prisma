@@ -51,6 +51,7 @@ model ApiKey {
   prefix     String               // "mct_live_xK9p2mN8" — safe to show in UI
   keyHash    String   @unique     // SHA-256 of the raw key — for verification only
   region     String   @default("ap-southeast-1")
+  assignedPort Int?   @unique           // dedicated port for TCP+UDP (e.g. 10001)
   status     String   @default("inactive") // active | inactive | suspended
   rxBytes    BigInt   @default(0)
   txBytes    BigInt   @default(0)

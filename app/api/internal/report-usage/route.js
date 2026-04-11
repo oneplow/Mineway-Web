@@ -20,7 +20,7 @@ export async function POST(req) {
 
   // ─── เพิ่ม bytes เข้า DB แบบ atomic (increment) ────────────────────
   try {
-    await prisma.apiKey.update({
+    await prisma.apiKey.updateMany({
       where: { id: keyId },
       data: {
         rxBytes:    { increment: BigInt(rxBytes) },

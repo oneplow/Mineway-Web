@@ -145,6 +145,43 @@ export default function OverviewPage() {
     }
   };
 
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [keyToReset, setKeyToReset] = useState(null);
+  const [isResetting, setIsResetting] = useState(false);
+
+  const confirmReset = (key) => {
+    setKeyToReset(key);
+    setResetModalOpen(true);
+  };
+
+  const executeReset = async () => {
+    if (!keyToReset) return;
+    setIsResetting(true);
+    try {
+      const res = await fetch(`/api/keys/${keyToReset.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("ระบบได้สร้าง API Key ใหม่แทนที่ตัวเดิมแล้ว");
+        setResetModalOpen(false);
+        setSelectedKeyForDrawer(null); // Close drawer to show modal clearly
+        setNewKeyValue(data.keyValue); // Trigger the green success modal!
+        fetchData();
+      } else {
+        toast.error(data.error || "ขออภัย ไม่สามารถรีเซ็ต Key ได้");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("เครือข่ายขัดข้อง กรุณาลองใหม่");
+    } finally {
+      setIsResetting(false);
+      setKeyToReset(null);
+    }
+  };
+
   const handleToggle = async (key) => {
     const newStatus = key.status === "active" ? "inactive" : "active";
     const toastId = toast.loading(`กำลังเปลี่ยนสถานะเป็น ${newStatus}...`);
@@ -267,7 +304,7 @@ export default function OverviewPage() {
                 <thead>
                   <tr className="bg-gray-50 dark:bg-[#0a0c0f]/50 border-b border-gray-200 dark:border-[#1e2330] text-gray-500 dark:text-[#8892a4] text-[11px] uppercase tracking-wider font-bold">
                     <th className="p-5">Name / Tunnel</th>
-                    <th className="p-5">Key Prefix</th>
+                    <th className="p-5">Address</th>
                     <th className="p-5">Region</th>
                     <th className="p-5">Traffic</th>
                     <th className="p-5">Status</th>
@@ -285,7 +322,16 @@ export default function OverviewPage() {
                         <td className="p-5 font-bold text-gray-900 dark:text-[#e8ecf4]">{k.name}</td>
                         <td className="p-5">
                           <div className="flex items-center space-x-3 w-fit">
-                            <span className="font-mono text-gray-400 dark:text-[#8892a4] tracking-wider">{k.prefix}••••</span>
+                            <span className="font-mono tracking-wider">
+                              {k.assignedPort ? (
+                                <>
+                                  <span className="text-gray-400 dark:text-[#8892a4]">play.lexten.store</span>
+                                  <span className="text-[#10d97e]">:{k.assignedPort}</span>
+                                </>
+                              ) : (
+                                <span className="text-gray-400 dark:text-[#8892a4]">—</span>
+                              )}
+                            </span>
                           </div>
                         </td>
                         <td className="p-5">
@@ -314,6 +360,7 @@ export default function OverviewPage() {
         onCopy={handleCopy}
         onToggle={handleToggle}
         onDeleteRequest={confirmDelete}
+        onResetRequest={confirmReset}
       />
 
       <Modal
@@ -327,6 +374,22 @@ export default function OverviewPage() {
       >
         <p>คุณกำลังจะลบ API Key: <span className="font-bold text-gray-900 dark:text-white">{keyToDelete?.name}</span></p>
         <p className="mt-2 text-sm text-red-500">การดำเนินการนี้ไม่สามารถย้อนกลับได้ Server ที่ใช้คีย์นี้อยู่จะหลุดการเชื่อมต่อทันที</p>
+      </Modal>
+
+      <Modal
+        isOpen={resetModalOpen}
+        onClose={() => setResetModalOpen(false)}
+        title="ขอยืนยันการเปลี่ยนกุญแจใหม่ (Reset Key)"
+        confirmText="ยืนยันการเปลี่ยนกุญแจ"
+        onConfirm={executeReset}
+        isProcessing={isResetting}
+      >
+        <div className="space-y-3">
+          <p>คุณกำลังจะลบกุญแจเดิมทิ้ง และสร้างกุญแจชุดใหม่สำหรับ Tunnel: <span className="font-bold text-gray-900 dark:text-white">{keyToReset?.name}</span></p>
+          <div className="p-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-200 dark:border-red-500/20">
+            <strong>คำเตือน:</strong> กุญแจเดิมที่ใส่อยู่ในเซิร์ฟเวอร์จะใช้งานไม่ได้ทันที เซิร์ฟเวอร์จะหลุดการเชื่อมต่อจนกว่าคุณจะนำกุญแจชุดใหม่ไปใส่แทน
+          </div>
+        </div>
       </Modal>
 
       <Modal
@@ -395,7 +458,7 @@ export default function OverviewPage() {
         onClose={() => setNewKeyValue(null)}
         title={
           <div className="flex items-center gap-2 text-emerald-600 dark:text-[#10d97e]">
-            <CheckCircle2 size={24} /> 
+            <CheckCircle2 size={24} />
             <span>สร้าง API Key สำเร็จ</span>
           </div>
         }
