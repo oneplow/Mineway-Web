@@ -5,17 +5,23 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { LayoutDashboard, Star, CreditCard, Sun, Moon, Pickaxe, Menu, X, Hexagon, LogOut, User } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { useUser } from "@/components/UserProvider";
 
-export default function Navbar({ user }) {
+export default function Navbar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const { user } = useUser();
 
   useEffect(() => setMounted(true), []);
 
-  const mockUser = user || { name: "สมชาย ใจดี", points: 247, plan: "Starter" };
+  // Hide navbar on admin, auth, and landing pages
+  const hideOn = ["/admin", "/auth", "/"];
+  if (hideOn.some(p => p === "/" ? pathname === "/" : pathname.startsWith(p))) return null;
+
+  const mockUser = user || { name: "สมชาย ใจดี", points: 0, plan: "Free" };
 
   const NAV = [
     { href: "/overview", label: "ภาพรวม", icon: LayoutDashboard },
@@ -24,7 +30,7 @@ export default function Navbar({ user }) {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-gray-200 dark:border-[#1e2330] bg-white/90 dark:bg-[#0a0c0f]/90 backdrop-blur-xl px-4 md:px-8 transition-colors duration-300">
+    <nav className="sticky top-0 z-50 ring-1 ring-black/5 dark:ring-white/5 bg-white/70 dark:bg-[#0a0c10]/80 backdrop-blur-2xl px-4 md:px-8 transition-colors duration-300 shadow-sm dark:shadow-none">
       <div className="max-w-[1100px] mx-auto h-16 flex items-center justify-between">
 
         {/* Logo & Desktop Nav */}
@@ -43,9 +49,9 @@ export default function Navbar({ user }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[14px] transition-all font-medium ${active
-                    ? "text-[#10d97e] bg-[#10d97e]/10"
-                    : "text-gray-500 dark:text-[#8892a4] hover:text-gray-900 dark:hover:text-[#e8ecf4] hover:bg-gray-100 dark:hover:bg-[#1e2330]"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[14px] transition-all font-medium border border-transparent ${active
+                    ? "text-[#10d97e] bg-[#10d97e]/10 border-[#10d97e]/20 shadow-sm"
+                    : "text-gray-500 dark:text-[#8892a4] hover:text-gray-900 dark:hover:text-[#e8ecf4] hover:bg-black/5 dark:hover:bg-white/5 hover:border-black/5 dark:hover:border-white/5"
                     }`}
                 >
                   <item.icon size={16} />
@@ -65,12 +71,12 @@ export default function Navbar({ user }) {
 
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2 rounded-xl text-gray-500 dark:text-[#8892a4] hover:bg-gray-100 dark:hover:bg-[#1e2330] transition-colors"
+            className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 ring-1 ring-transparent hover:ring-black/5 dark:hover:ring-white/5 transition-all"
           >
             {mounted ? (theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />) : <Sun size={18} className="opacity-0" />}
           </button>
 
-          <div className="hidden md:flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-[#1e2330] relative">
+          <div className="hidden md:flex items-center gap-3 pl-4 border-l border-black/5 dark:border-white/5 relative">
             <div className="text-right hidden lg:block">
               <div className="text-[13px] font-bold text-gray-900 dark:text-[#e8ecf4] leading-tight">{mockUser.username}</div>
               <div className="text-[11px] text-gray-500 dark:text-[#4a5568]">{typeof mockUser.plan === 'object' ? mockUser.plan?.displayName : mockUser.plan} Plan</div>
@@ -89,8 +95,8 @@ export default function Navbar({ user }) {
             {profileDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-[45]" onClick={() => setProfileDropdownOpen(false)}></div>
-                <div className="absolute top-[120%] right-0 min-w-[200px] bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-opacity py-2">
-                  <div className="px-4 py-2 border-b border-gray-100 dark:border-[#1e2330] lg:hidden mb-1">
+                <div className="absolute right-0 top-14 w-56 bg-white/90 dark:bg-[#0f141e]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 rounded-2xl shadow-xl dark:shadow-2xl py-2 animate-slide-up z-50">
+                  <div className="px-4 py-2 border-b border-black/5 dark:border-white/5 mb-1">
                     <div className="text-[13px] font-bold text-gray-900 dark:text-[#e8ecf4]">{mockUser.username}</div>
                     <div className="text-[11px] text-gray-500 dark:text-[#8892a4]">{typeof mockUser.plan === 'object' ? mockUser.plan?.displayName : mockUser.plan} Plan</div>
                   </div>
@@ -109,7 +115,7 @@ export default function Navbar({ user }) {
           </div>
 
           <button
-            className="md:hidden p-2 rounded-xl text-gray-900 dark:text-[#e8ecf4] hover:bg-gray-100 dark:hover:bg-[#1e2330] transition-colors"
+            className="md:hidden p-2 rounded-xl text-gray-900 dark:text-[#e8ecf4] hover:bg-black/5 dark:hover:bg-white/5 ring-1 ring-transparent hover:ring-black/5 dark:hover:ring-white/5 transition-all"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -119,7 +125,7 @@ export default function Navbar({ user }) {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-[65px] left-0 right-0 bg-white dark:bg-[#0a0c0f] border-b border-gray-200 dark:border-[#1e2330] p-4 shadow-xl z-40 animate-fade-in">
+        <div className="md:hidden absolute top-[65px] left-0 right-0 bg-white/90 dark:bg-[#0f141e]/90 backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/5 p-4 shadow-xl z-40 animate-fade-in">
           <div className="flex flex-col gap-2">
             {NAV.map(item => {
               const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -128,9 +134,9 @@ export default function Navbar({ user }) {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] font-medium transition-all ${active
-                    ? "text-[#10d97e] bg-[#10d97e]/10 border border-[#10d97e]/20"
-                    : "text-gray-600 dark:text-[#8892a4] hover:bg-gray-50 dark:hover:bg-[#1e2330]"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] font-medium transition-all border ${active
+                    ? "text-[#10d97e] bg-[#10d97e]/10 border-[#10d97e]/20"
+                    : "text-gray-600 dark:text-[#8892a4] border-transparent hover:bg-black/5 dark:hover:bg-white/5 hover:border-black/5 dark:hover:border-white/5"
                     }`}
                 >
                   <item.icon size={18} />

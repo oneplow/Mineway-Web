@@ -30,8 +30,8 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen transition-colors duration-300">
-      <nav className="sticky top-0 z-50 border-b border-gray-200 dark:border-[#1e2330] bg-white/90 dark:bg-[#0a0c0f]/90 backdrop-blur-xl px-8 transition-colors duration-300">
+    <div className="min-h-screen transition-colors duration-300 bg-gradient-to-br from-[#f8fafc] to-[#e2e8f0] dark:from-[#050505] dark:to-[#0a0c10]">
+      <nav className="sticky top-0 z-50 ring-1 ring-black/5 dark:ring-white/5 bg-white/70 dark:bg-[#0a0c10]/80 backdrop-blur-2xl px-8 transition-colors duration-300 shadow-sm dark:shadow-none">
         <div className="max-w-[1100px] mx-auto h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#10d97e] to-[#0ea865] flex items-center justify-center text-white">
@@ -42,7 +42,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1e2330] transition-colors"
+              className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 ring-1 ring-transparent hover:ring-black/5 dark:hover:ring-white/5 transition-all"
             >
               {mounted ? (theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />) : <Sun size={18} className="opacity-0" />}
             </button>
@@ -74,7 +74,7 @@ export default function Home() {
             <Link href="/auth/register" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#10d97e] text-white dark:text-[#0a0c0f] text-[15px] font-semibold hover:brightness-110 transition-all">
               เริ่มต้นฟรี →
             </Link>
-            <Link href="/overview" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-gray-200 dark:border-[#1e2330] text-gray-600 dark:text-[#8892a4] text-[15px] font-medium hover:bg-gray-50 dark:hover:bg-[#111318] transition-all">
+            <Link href="/overview" className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-[#10d97e] bg-[#10d97e]/10 ring-1 ring-[#10d97e]/20 mb-6 dark:border-[#1e2330] text-gray-600 dark:text-[#8892a4] text-[15px] font-medium hover:bg-gray-50 dark:hover:bg-[#111318] transition-all">
               ดู Dashboard Demo
             </Link>
           </div>
@@ -99,15 +99,15 @@ export default function Home() {
 
       <section className="px-8 py-24 border-t border-gray-200 dark:border-[#1e2330]">
         <div className="max-w-[1100px] mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="font-syne text-[2.2rem] font-bold tracking-[-0.02em] text-gray-900 dark:text-[#e8ecf4] mb-3">ทุกอย่างที่เซิร์ฟของคุณต้องการ</h2>
+          <div className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 rounded-[32px] p-12 text-center shadow-xl">
+            <h2 className="text-3xl md:text-5xl font-syne font-black mb-6 text-gray-900 dark:text-[#e8ecf4]">พร้อมที่จะรันเซิร์ฟเวอร์แล้วหรือยัง?</h2>
             <p className="text-gray-500 dark:text-[#8892a4] text-base">ออกแบบมาสำหรับ server owner ที่ต้องการความง่ายและเสถียร</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((f,i) => (
-              <div key={i} className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-7 hover:border-[#10d97e]/30 transition-all duration-300">
-                <div className="mb-4">{f.icon}</div>
-                <div className="font-semibold text-[15px] text-gray-900 dark:text-[#e8ecf4] mb-2">{f.title}</div>
+              <div key={i} className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl p-8 rounded-[24px] ring-1 ring-black/5 dark:ring-white/5 hover:-translate-y-1 hover:shadow-2xl hover:ring-black/10 dark:hover:ring-white/10 transition-all duration-300 shadow-xl">
+                <div className="mb-4 bg-black/5 dark:bg-white/5 w-12 h-12 rounded-2xl flex items-center justify-center ring-1 ring-black/5 dark:ring-white/5">{f.icon}</div>
+                <div className="font-bold text-[16px] text-gray-900 dark:text-[#e8ecf4] mb-2">{f.title}</div>
                 <div className="text-[14px] text-gray-500 dark:text-[#8892a4] leading-[1.6]">{f.desc}</div>
               </div>
             ))}
@@ -122,18 +122,18 @@ export default function Home() {
             <p className="text-gray-500 dark:text-[#8892a4] text-base">เริ่มต้นฟรี อัปเกรดเมื่อพร้อม</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {PLANS.map((plan) => (
-              <div key={plan.name} className={`relative rounded-2xl p-8 border ${plan.popular ? "bg-[#10d97e]/[0.02] dark:bg-[#10d97e]/5 border-[#10d97e]/30" : "bg-white dark:bg-[#111318] border-gray-200 dark:border-[#1e2330]"}`}>
-                {plan.popular && (
+            {PLANS.map((p, idx) => (
+              <div key={idx} className={`bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl p-8 rounded-[24px] transition-all flex flex-col relative ${p.popular ? 'ring-2 ring-[#10d97e] transform md:-translate-y-4 shadow-2xl shadow-[#10d97e]/20' : 'ring-1 ring-black/5 dark:ring-white/5 shadow-xl hover:-translate-y-2 hover:shadow-2xl hover:ring-black/10 dark:hover:ring-white/10'}`}>
+                {p.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#10d97e] text-white dark:text-[#0a0c0f] px-3.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap">ยอดนิยม</div>
                 )}
-                <div className="font-syne text-[18px] font-bold text-gray-900 dark:text-[#e8ecf4] mb-1">{plan.name}</div>
-                <div className="mb-6">
-                  <span className={`font-syne text-[34px] font-extrabold ${plan.popular ? "text-[#10d97e]" : "text-gray-900 dark:text-[#e8ecf4]"}`}>฿{plan.price}</span>
-                  <span className="text-gray-500 dark:text-[#4a5568] text-sm">/เดือน</span>
+                <div className="font-syne text-[18px] font-bold text-gray-900 dark:text-[#e8ecf4] mb-1">{p.name}</div>
+                <div className="flex items-baseline gap-1 my-6 border-b border-black/5 dark:border-white/5 pb-6">
+                  <span className="text-4xl font-black text-gray-900 dark:text-[#e8ecf4]">{p.price}</span>
+                  <span className="text-gray-500 font-bold">฿/เดือน</span>
                 </div>
                 <div className="flex flex-col gap-2.5 mb-7">
-                  {[plan.bw, plan.players, plan.nodes].map((item,j) => (
+                  {[p.bw, p.players, p.nodes].map((item,j) => (
                     <div key={j} className="flex items-center gap-2 text-sm text-gray-600 dark:text-[#8892a4]">
                       <span className="text-[#10d97e]">✓</span> {item}
                     </div>

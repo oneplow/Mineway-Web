@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import Navbar from "@/components/Navbar";
-import { Key, Activity, Copy, Plus, Globe, ShieldCheck, ChevronDown, CheckCircle2, AlertCircle } from "lucide-react";
+import { useUser } from "@/components/UserProvider";
+import { Key, Activity, Copy, Plus, Globe, ShieldCheck, ChevronDown, CheckCircle2, AlertCircle, Trash2, RefreshCw } from "lucide-react";
 import { REGIONS } from "@/lib/constants";
 import toast from "react-hot-toast";
 import PageLoader from "@/components/ui/PageLoader";
@@ -29,6 +29,7 @@ export default function OverviewPage() {
   const [keys, setKeys] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { refreshUser } = useUser();
 
   const [selectedKeyForDrawer, setSelectedKeyForDrawer] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -213,13 +214,12 @@ export default function OverviewPage() {
   const atLimit = keys.length >= (user?.stats?.maxKeys || user?.plan?.maxKeys || 1);
 
   return (
-    <div className="min-h-screen transition-colors duration-300 bg-[#f8fafc] dark:bg-[#0a0c0f]">
-      <Navbar user={user} />
+    <div className="min-h-screen transition-colors duration-300 bg-gradient-to-br from-[#f8fafc] to-[#e2e8f0] dark:from-[#050505] dark:to-[#0a0c10]">
 
       <div className="pt-24 pb-12 px-6 md:px-12 max-w-[1100px] mx-auto space-y-8 animate-fade-in">
 
         {/* Header section */}
-        <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center shadow-sm">
+        <div className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 rounded-[24px] p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center shadow-xl">
           <div>
             <h1 className="font-syne text-3xl lg:text-4xl font-bold mb-2 tracking-tight text-gray-900 dark:text-[#e8ecf4]">
               ภาพรวม (Overview)
@@ -243,7 +243,7 @@ export default function OverviewPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] p-6 rounded-2xl relative overflow-hidden group hover:border-[#10d97e]/30 transition-all duration-300 shadow-sm">
+          <div className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 p-6 rounded-[20px] relative overflow-hidden group hover:ring-black/10 dark:hover:ring-[#10d97e]/30 transition-all duration-300 shadow-lg">
             <div className="absolute -top-4 -right-4 p-8 bg-[#10d97e]/5 rounded-full">
               <Activity size={48} className="text-[#10d97e]/40" />
             </div>
@@ -260,7 +260,7 @@ export default function OverviewPage() {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] p-6 rounded-2xl relative overflow-hidden group hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 shadow-sm">
+          <div className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 p-6 rounded-[20px] relative overflow-hidden group hover:ring-black/10 dark:hover:ring-[#10d97e]/30 transition-all duration-300 shadow-lg">
             <div className="absolute -top-4 -right-4 p-8 bg-blue-500/5 rounded-full">
               <Key size={48} className="text-blue-500/40" />
             </div>
@@ -271,7 +271,7 @@ export default function OverviewPage() {
             </div>
           </div>
 
-          <div className="bg-[#10d97e]/[0.02] dark:bg-[#10d97e]/5 border border-[#10d97e]/30 p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between group shadow-sm">
+          <div className="bg-[#10d97e]/[0.02] dark:bg-[#10d97e]/5 backdrop-blur-xl ring-1 ring-[#10d97e]/30 p-6 rounded-[20px] relative overflow-hidden flex flex-col justify-between group shadow-lg">
             <div className="absolute -top-4 -right-4 p-8 bg-[#10d97e]/10 rounded-full">
               <ShieldCheck size={48} className="text-[#10d97e]/40" />
             </div>
@@ -289,8 +289,8 @@ export default function OverviewPage() {
         </div>
 
         {/* API Keys Table */}
-        <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-6 md:p-8 border-b border-gray-200 dark:border-[#1e2330] flex justify-between items-center bg-gray-50 dark:bg-transparent">
+        <div className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 rounded-[24px] shadow-xl">
+          <div className="p-6 md:p-8 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
             <h3 className="font-syne text-xl font-bold tracking-tight text-gray-900 dark:text-[#e8ecf4]">Your API Keys</h3>
           </div>
 
@@ -299,10 +299,10 @@ export default function OverviewPage() {
               ยังไม่มี API Key คุณสามารถสร้างใหม่ได้ที่ปุ่ม "สร้าง Key ใหม่"
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto w-full">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 dark:bg-[#0a0c0f]/50 border-b border-gray-200 dark:border-[#1e2330] text-gray-500 dark:text-[#8892a4] text-[11px] uppercase tracking-wider font-bold">
+                  <tr className="bg-black/5 dark:bg-[#121620]/50 border-b border-black/5 dark:border-white/5 text-gray-500 dark:text-[#8892a4] text-[11px] uppercase tracking-wider font-bold">
                     <th className="p-5">Name / Tunnel</th>
                     <th className="p-5">Address</th>
                     <th className="p-5">Region</th>
@@ -310,7 +310,7 @@ export default function OverviewPage() {
                     <th className="p-5">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-[#1e2330] text-[13px] font-medium text-gray-700 dark:text-[#e8ecf4]">
+                <tbody className="divide-y divide-black/5 dark:divide-white/5 text-[13px] font-medium text-gray-700 dark:text-[#e8ecf4]">
 
                   {keys.map(k => {
                     const regionObj = REGIONS.find(r => r.value === k.region) || REGIONS[0];
@@ -318,7 +318,7 @@ export default function OverviewPage() {
                     const txGB = (k.txBytes / (1024 * 1024 * 1024)).toFixed(2);
 
                     return (
-                      <tr key={k.id} className="transition-colors cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1e2330]/30" onClick={() => setSelectedKeyForDrawer(k)}>
+                      <tr key={k.id} className="transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" onClick={() => setSelectedKeyForDrawer(k)}>
                         <td className="p-5 font-bold text-gray-900 dark:text-[#e8ecf4]">{k.name}</td>
                         <td className="p-5">
                           <div className="flex items-center space-x-3 w-fit">
@@ -366,28 +366,40 @@ export default function OverviewPage() {
       <Modal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        title="ขอยืนยันการลบ API Key"
-        confirmText="ยืนยัน, ลบถาวร"
+        title="ยกเลิกการใช้งาน (Delete)"
+        subtitle={<>เซิร์ฟเวอร์เป้าหมาย: <span className="text-emerald-400 font-bold">{keyToDelete?.name}</span></>}
+        confirmText="ยืนยันการลบถาวร"
         onConfirm={executeDelete}
         isDestructive={true}
         isProcessing={isDeleting}
       >
-        <p>คุณกำลังจะลบ API Key: <span className="font-bold text-gray-900 dark:text-white">{keyToDelete?.name}</span></p>
-        <p className="mt-2 text-sm text-red-500">การดำเนินการนี้ไม่สามารถย้อนกลับได้ Server ที่ใช้คีย์นี้อยู่จะหลุดการเชื่อมต่อทันที</p>
+        <div className="flex flex-col items-center justify-center text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-rose-500/10 flex items-center justify-center">
+            <Trash2 className="w-8 h-8 text-rose-500" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-gray-900 dark:text-white leading-tight">ยืนยันลบ Tunnel ถาวร?</p>
+            <p className="text-sm text-gray-500 mt-2">การดำเนินการนี้ไม่สามารถย้อนกลับได้ พอร์ตเชื่อมต่อปัจจุบันจะถูกนำเข้าสู่ระบบสุ่ม</p>
+          </div>
+        </div>
       </Modal>
 
       <Modal
         isOpen={resetModalOpen}
         onClose={() => setResetModalOpen(false)}
-        title="ขอยืนยันการเปลี่ยนกุญแจใหม่ (Reset Key)"
+        title="ตั้งค่ากุญแจใหม่ (Reset)"
+        subtitle={<>เซิร์ฟเวอร์เป้าหมาย: <span className="text-emerald-400 font-bold">{keyToReset?.name}</span></>}
         confirmText="ยืนยันการเปลี่ยนกุญแจ"
         onConfirm={executeReset}
         isProcessing={isResetting}
       >
-        <div className="space-y-3">
-          <p>คุณกำลังจะลบกุญแจเดิมทิ้ง และสร้างกุญแจชุดใหม่สำหรับ Tunnel: <span className="font-bold text-gray-900 dark:text-white">{keyToReset?.name}</span></p>
-          <div className="p-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-200 dark:border-red-500/20">
-            <strong>คำเตือน:</strong> กุญแจเดิมที่ใส่อยู่ในเซิร์ฟเวอร์จะใช้งานไม่ได้ทันที เซิร์ฟเวอร์จะหลุดการเชื่อมต่อจนกว่าคุณจะนำกุญแจชุดใหม่ไปใส่แทน
+        <div className="flex flex-col items-center justify-center text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
+            <RefreshCw className="w-8 h-8 text-amber-500" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-gray-900 dark:text-white leading-tight">สร้างกุญแจชุดใหม่แทนที่อันเดิม</p>
+            <p className="text-sm text-gray-500 mt-2">คำเตือน: กุญแจเดิมในปลั๊กอินจะใช้งานไม่ได้ทันที เซิร์ฟเวอร์ในเกมจะหลุดการเชื่อมต่อจนกว่าคุณจะนำกุญแจชุดใหม่ไปใส่แทน</p>
           </div>
         </div>
       </Modal>
@@ -396,6 +408,7 @@ export default function OverviewPage() {
         isOpen={noPlanModalOpen}
         onClose={() => setNoPlanModalOpen(false)}
         title="จำเป็นต้องมีแพ็กเกจ"
+        subtitle="ระบบตรวจพบว่าคุณไม่มีแพ็กเกจรองรับ"
         confirmText="ดูแพ็กเกจ"
         onConfirm={() => router.push("/plans")}
       >
@@ -406,21 +419,28 @@ export default function OverviewPage() {
         isOpen={showCreate}
         onClose={() => setShowCreate(false)}
         title="สร้าง API Key ใหม่"
+        subtitle="เพิ่มพอร์ตเซิร์ฟเวอร์ใหม่เข้าสู่จุดเชื่อมต่อพรีเมียม"
         confirmText={creating ? "กำลังสร้าง..." : "ยืนยันการสร้าง"}
         onConfirm={handleCreate}
         isProcessing={creating}
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-[12px] text-gray-500 dark:text-[#4a5568] font-bold uppercase tracking-wider mb-2">ชื่อ Tunnel / เซิร์ฟเวอร์</label>
-            <input placeholder="เช่น Survival Main" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-              className="w-full bg-gray-50 dark:bg-[#0a0c0f] border border-gray-200 dark:border-[#1e2330] rounded-xl px-4 py-3 text-gray-900 dark:text-[#e8ecf4] text-[14px] outline-none focus:border-[#10d97e] dark:focus:border-[#10d97e] transition-colors" />
+            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">ชื่อ Tunnel / เซิร์ฟเวอร์</label>
+            <div className="relative">
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 font-black tracking-widest text-sm">SRV</span>
+              <input placeholder="เช่น Survival Main" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                className="w-full bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl pl-[68px] pr-4 py-4 text-gray-900 dark:text-white text-xl font-black outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 shadow-inner transition-all" />
+            </div>
           </div>
-          <div className="relative">
-            <label className="block text-[12px] text-gray-500 dark:text-[#4a5568] font-bold uppercase tracking-wider mb-2">ภูมิภาค (Region)</label>
+          {/* 
+            TODO: Uncomment this block when Multi-Region support is fully implemented on the backend 
+          */}
+          <div className="relative hidden">
+            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">ภูมิภาค (Region)</label>
             <div
               onClick={() => setRegionDropdownOpen(!regionDropdownOpen)}
-              className="w-full bg-gray-50 dark:bg-[#0a0c0f] border border-gray-200 dark:border-[#1e2330] rounded-xl px-4 py-3 text-gray-900 dark:text-[#e8ecf4] text-[14px] outline-none cursor-pointer hover:border-[#10d97e] dark:hover:border-[#10d97e] transition-colors flex items-center justify-between"
+              className="w-full bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-4 text-gray-900 dark:text-white text-xl font-black outline-none cursor-pointer hover:border-emerald-500 dark:hover:border-emerald-500 shadow-inner transition-all flex items-center justify-between"
             >
               <span>
                 {REGIONS.find(r => r.value === form.region)?.flag} {REGIONS.find(r => r.value === form.region)?.label} <span className="text-gray-500 dark:text-[#4a5568] ml-1">({REGIONS.find(r => r.value === form.region)?.ping})</span>
@@ -471,8 +491,8 @@ export default function OverviewPage() {
             <AlertCircle size={16} className="shrink-0" />
             กุญแจนี้จะแสดงครั้งเดียวเท่านั้น กรุณาคัดลอกและบันทึกไว้ในที่ปลอดภัย
           </div>
-          <div className="flex items-center bg-gray-50 dark:bg-[#0a0c0f] border border-gray-200 dark:border-[#1e2330] rounded-xl p-3">
-            <code className="font-mono text-[14px] text-gray-800 dark:text-[#e8ecf4] flex-1 break-all select-all">{newKeyValue}</code>
+          <div className="flex items-center bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl p-4 shadow-inner">
+            <code className="font-mono text-lg font-bold text-gray-900 dark:text-emerald-400 flex-1 break-all select-all">{newKeyValue}</code>
           </div>
         </div>
       </Modal>

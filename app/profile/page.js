@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { User, KeyRound, Mail, LogOut, Link as LinkIcon } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import { toast } from "react-hot-toast";
 import { signOut } from "next-auth/react";
 
@@ -91,7 +90,6 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen transition-colors duration-300 bg-[#f8fafc] dark:bg-[#0a0c0f]">
-      <Navbar user={userData} />
 
       <div className="pt-24 pb-16 px-6 md:px-12 max-w-[1100px] mx-auto animate-fade-in">
         {/* Header section */}

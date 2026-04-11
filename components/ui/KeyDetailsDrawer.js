@@ -146,7 +146,10 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
             <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-4">ข้อมูลการเชื่อมต่อ</div>
             <div className="space-y-4">
 
-              <div className="flex items-center gap-4">
+              {/* 
+                TODO: Uncomment this block when Multi-Region support is fully implemented 
+              */}
+              <div className="hidden items-center gap-4">
                 <div className="p-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-500 rounded-xl"><Globe size={18} /></div>
                 <div className="flex-1">
                   <div className="text-[12px] text-gray-500 dark:text-[#8892a4]">ภูมิภาค (Region)</div>

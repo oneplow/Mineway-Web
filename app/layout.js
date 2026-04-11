@@ -1,6 +1,8 @@
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
+import UserProvider from "@/components/UserProvider";
+import Navbar from "@/components/Navbar";
 
 export const metadata = {
   title: "Mineway — Minecraft Server Gateway",
@@ -13,16 +15,19 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Playpen+Sans+Thai:wght@500;600;700;800&family=Sarabun:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
+          <UserProvider>
+            <Navbar />
+            {children}
+          </UserProvider>
           <Toaster 
             position="top-center"
             toastOptions={{
-              className: 'bg-white dark:bg-[#111318] text-gray-900 dark:text-[#e8ecf4] border border-gray-200 dark:border-[#1e2330]',
-              style: { borderRadius: '12px', padding: '16px', fontWeight: 'bold' }
+              className: 'bg-white/80 dark:bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 text-gray-900 dark:text-white',
+              style: { borderRadius: '16px', padding: '16px', fontWeight: 'bold' }
             }}
           />
         </ThemeProvider>
@@ -30,3 +35,4 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+

@@ -77,14 +77,31 @@ export async function POST(req) {
     // 3. Create a safe prefix for UI display (first 8 chars of secret)
     const prefix = `mw_live_${rawSecret.slice(0, 8)}`;
 
-    // 4. Allocate a dedicated port (TCP+UDP) — find highest used port and increment
+    // 4. Allocate a dedicated port (TCP+UDP) — Randomize and collision check
     const PORT_START = parseInt(process.env.PORT_RANGE_START || "10000");
-    const lastKey = await prisma.apiKey.findFirst({
-      where: { assignedPort: { not: null } },
-      orderBy: { assignedPort: "desc" },
-      select: { assignedPort: true },
-    });
-    const assignedPort = lastKey?.assignedPort ? lastKey.assignedPort + 1 : PORT_START;
+    const PORT_END = parseInt(process.env.PORT_RANGE_END || "60000");
+    
+    let assignedPort;
+    let attempts = 0;
+    
+    while (!assignedPort && attempts < 100) {
+      const randomPort = Math.floor(Math.random() * (PORT_END - PORT_START + 1)) + PORT_START;
+      
+      // Check collision in the database
+      const existing = await prisma.apiKey.findUnique({
+        where: { assignedPort: randomPort },
+        select: { id: true },
+      });
+      
+      if (!existing) {
+        assignedPort = randomPort;
+      }
+      attempts++;
+    }
+
+    if (!assignedPort) {
+      return NextResponse.json({ error: "No available ports found (System Full)" }, { status: 500 });
+    }
 
     // 5. Store in DB — no raw key, only prefix + hash + port
     const newKey = await prisma.apiKey.create({

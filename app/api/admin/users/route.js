@@ -43,3 +43,75 @@ export async function PATCH(req) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function POST(req) {
+  try {
+    const session = await auth();
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const { username, email, password, role = "USER" } = await req.json();
+    if (!email || !password) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Check if user exists
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [{ email }, { username: username || undefined }]
+      }
+    });
+
+    if (existing) {
+      return NextResponse.json({ error: "Email or username already exists" }, { status: 400 });
+    }
+
+    // Hash password
+    const bcrypt = await import("bcryptjs");
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await prisma.user.create({
+      data: {
+        username: username || null,
+        email,
+        password: hashedPassword,
+        role,
+      }
+    });
+
+    return NextResponse.json({ success: true, user: newUser });
+  } catch (error) {
+    console.error("POST /api/admin/users error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req) {
+  try {
+    const session = await auth();
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    }
+
+    if (userId === session.user.id) {
+      return NextResponse.json({ error: "Cannot delete yourself" }, { status: 400 });
+    }
+
+    await prisma.user.delete({
+      where: { id: userId }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DELETE /api/admin/users error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
