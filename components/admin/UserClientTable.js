@@ -81,7 +81,7 @@ export default function UserClientTable({ initialUsers }) {
 
   return (
     <>
-      <div className="bg-[#0f141e]/90 backdrop-blur-xl ring-1 ring-white/5 rounded-3xl shadow-2xl min-h-[400px] animate-fade-in my-8 p-[1px]">
+      <div className="bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-white/5 rounded-[24px] shadow-xl">
         <div className="w-full bg-[#121620] rounded-[23px]">
           <table className="w-full text-left border-collapse">
             <thead>
