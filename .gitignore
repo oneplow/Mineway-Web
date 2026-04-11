@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# prisma
+prisma.config.mjs
+
+AGENTS.md
+CLAUDE.md
+CODEX.md
+GEMINI.md
+OPENAI.md
+PHIND.md
