@@ -9,7 +9,8 @@ export default async function AdminTunnelsPage() {
     include: {
       user: {
         select: { username: true, email: true }
-      }
+      },
+      domain: true
     }
   });
 

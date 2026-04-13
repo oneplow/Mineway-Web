@@ -21,7 +21,7 @@ export async function POST(req) {
 
     const apiKey = await prisma.apiKey.findUnique({
       where: { keyHash: key_hash },
-      include: { user: { include: { plan: true } } },
+      include: { user: { include: { plan: true } }, domain: true },
     });
 
     if (!apiKey || apiKey.status !== "active") {
@@ -48,11 +48,17 @@ export async function POST(req) {
       data: { lastUsedAt: new Date() },
     });
 
+    // Build full subdomain string
+    const fullSubdomain = apiKey.subdomain && apiKey.domain
+      ? `${apiKey.subdomain}.${apiKey.domain.domain}`
+      : null;
+
     return NextResponse.json({
       valid: true,
       keyId: apiKey.id,
       userId: apiKey.userId,
       assignedPort: apiKey.assignedPort,
+      subdomain: fullSubdomain,
       plan: plan?.name ?? "free",
       maxPlayers: plan?.maxPlayers ?? 5,
       bandwidthRemaining: plan

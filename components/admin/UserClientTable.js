@@ -183,7 +183,7 @@ export default function UserClientTable({ initialUsers }) {
                   <td className="px-7 py-5 whitespace-nowrap text-[13px] font-medium text-gray-500">
                     {formatDistanceToNow(new Date(u.createdAt), { addSuffix: true })}
                   </td>
-                  <td className="px-7 py-5 whitespace-nowrap text-right text-sm font-medium relative">
+                  <td className={`px-7 py-5 whitespace-nowrap text-right text-sm font-medium relative ${dropdownOpen === u.id ? 'z-50' : 'z-10'}`}>
                     <button 
                       onClick={() => setDropdownOpen(dropdownOpen === u.id ? null : u.id)}
                       className="text-gray-500 hover:text-white transition-colors p-2 rounded-xl hover:bg-gray-800 focus:outline-none"

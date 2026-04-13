@@ -43,6 +43,7 @@ export async function GET() {
             bandwidthGB: user.plan.bandwidthGB,
             maxKeys: user.plan.maxKeys,
             maxNodes: user.plan.maxNodes,
+            allowCustomPort: user.plan.allowCustomPort,
           }
         : null,
       stats: {

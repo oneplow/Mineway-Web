@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Zap, Lock, ChartBar, Globe, RefreshCcw, Banknote, Pickaxe, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useSettings } from "@/components/SettingsProvider";
 import React from "react";
 
 const FEATURES = [
@@ -23,6 +24,7 @@ const PLANS = [
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
+  const settings = useSettings();
   const [mounted, setMounted] = useState(false);
 
   React.useEffect(() => {
@@ -37,7 +39,7 @@ export default function Home() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#10d97e] to-[#0ea865] flex items-center justify-center text-white">
               <Pickaxe size={18} />
             </div>
-            <span className="font-syne font-bold text-lg text-gray-900 dark:text-[#e8ecf4] tracking-tight">Mineway</span>
+            <span className="font-syne font-bold text-lg text-gray-900 dark:text-[#e8ecf4] tracking-tight">{settings.siteName}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -59,10 +61,12 @@ export default function Home() {
       <section className="relative px-8 pt-32 pb-20 text-center overflow-hidden">
         <div className="absolute top-[5%] left-1/2 -translate-x-1/2 w-[700px] h-[350px] rounded-full bg-[radial-gradient(ellipse,rgba(16,217,126,0.1)_0%,transparent_70%)] pointer-events-none" />
         <div className="relative max-w-[760px] mx-auto animate-fade-in">
-          <div className="inline-flex items-center gap-2 bg-[#10d97e]/10 border border-[#10d97e]/20 rounded-full px-3.5 py-1.5 mb-8 text-[13px] text-[#10d97e] font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#10d97e] inline-block pulse-dot" />
-            พร้อมให้บริการแล้ววันนี้
-          </div>
+          {settings.homeAnnouncement && (
+            <div className="inline-flex items-center gap-2 bg-[#10d97e]/10 border border-[#10d97e]/20 rounded-full px-3.5 py-1.5 mb-8 text-[13px] text-[#10d97e] font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#10d97e] inline-block pulse-dot" />
+              {settings.homeAnnouncement}
+            </div>
+          )}
           <h1 className="font-syne text-[clamp(2.4rem,6vw,4.2rem)] font-extrabold leading-[1.08] tracking-[-0.03em] text-gray-900 dark:text-[#e8ecf4] mb-6">
             เปิดเซิร์ฟ Minecraft<br />
             <span className="text-[#10d97e]">ให้โลกเข้าถึงได้</span>
@@ -140,11 +144,11 @@ export default function Home() {
                   ))}
                 </div>
                 <Link href="/auth/register" className={`block w-full text-center py-2.5 rounded-xl border text-sm font-semibold transition-all ${
-                  plan.popular 
+                  p.popular 
                     ? "bg-[#10d97e] border-[#10d97e] text-white dark:text-[#0a0c0f] hover:brightness-110" 
                     : "bg-transparent border-gray-200 dark:border-[#1e2330] text-gray-600 dark:text-[#8892a4] hover:border-gray-300 dark:hover:border-gray-600"
                 }`}>
-                  {plan.name === "Free" ? "เริ่มต้นฟรี" : `เลือก ${plan.name}`}
+                  {p.name === "Free" ? "เริ่มต้นฟรี" : `เลือก ${p.name}`}
                 </Link>
               </div>
             ))}
@@ -152,14 +156,60 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="px-8 py-10 border-t border-gray-200 dark:border-[#1e2330] text-center">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <div className="w-6 h-6 rounded bg-gradient-to-br from-[#10d97e] to-[#0ea865] flex items-center justify-center text-white">
-            <Pickaxe size={12} />
+      <footer className="px-8 py-16 border-t border-gray-200 dark:border-[#1e2330]">
+        <div className="max-w-[1100px] mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-10">
+            {/* Brand */}
+            <div className="max-w-[300px]">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#10d97e] to-[#0ea865] flex items-center justify-center text-white">
+                  <Pickaxe size={14} />
+                </div>
+                <span className="font-syne font-bold text-lg text-gray-900 dark:text-[#e8ecf4]">{settings.siteName}</span>
+              </div>
+              {settings.siteTagline && (
+                <p className="text-sm text-gray-500 dark:text-[#8892a4] leading-relaxed">{settings.siteTagline}</p>
+              )}
+            </div>
+
+            {/* Links */}
+            <div className="flex flex-wrap gap-12">
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-600 mb-3">เมนู</h4>
+                <div className="flex flex-col gap-2">
+                  <Link href="/auth/register" className="text-sm text-gray-600 dark:text-[#8892a4] hover:text-[#10d97e] transition-colors">สมัครสมาชิก</Link>
+                  <Link href="/auth/login" className="text-sm text-gray-600 dark:text-[#8892a4] hover:text-[#10d97e] transition-colors">เข้าสู่ระบบ</Link>
+                  <Link href="/overview" className="text-sm text-gray-600 dark:text-[#8892a4] hover:text-[#10d97e] transition-colors">Dashboard</Link>
+                </div>
+              </div>
+
+              {(settings.discordUrl || settings.contactEmail) && (
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-600 mb-3">ติดต่อเรา</h4>
+                  <div className="flex flex-col gap-2">
+                    {settings.discordUrl && (
+                      <a href={settings.discordUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-600 dark:text-[#8892a4] hover:text-[#5865F2] transition-colors flex items-center gap-1.5">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/></svg>
+                        Discord
+                      </a>
+                    )}
+                    {settings.contactEmail && (
+                      <a href={`mailto:${settings.contactEmail}`} className="text-sm text-gray-600 dark:text-[#8892a4] hover:text-[#10d97e] transition-colors flex items-center gap-1.5">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                        {settings.contactEmail}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          <span className="font-syne font-bold text-gray-900 dark:text-[#e8ecf4]">Mineway</span>
+
+          {/* Copyright */}
+          <div className="pt-6 border-t border-gray-200 dark:border-[#1e2330] text-center">
+            <p className="text-xs text-gray-400 dark:text-[#4a5568]">{settings.footerText ? `\u00a9 ${settings.footerText}` : `\u00a9 ${new Date().getFullYear()} ${settings.siteName}. All rights reserved.`}</p>
+          </div>
         </div>
-        <p className="text-sm text-gray-500 dark:text-[#4a5568]">© 2025 Mineway. All rights reserved.</p>
       </footer>
     </div>
   );

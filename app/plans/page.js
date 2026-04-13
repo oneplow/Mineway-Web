@@ -76,7 +76,7 @@ export default function PlansPage() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="min-h-screen transition-colors duration-300 bg-gradient-to-br from-[#f8fafc] to-[#e2e8f0] dark:from-[#050505] dark:to-[#0a0c10]">
+    <div className="w-full">
 
       <div className="pt-24 pb-16 px-6 md:px-12 max-w-[1100px] mx-auto animate-fade-in">
         {/* Header section */}

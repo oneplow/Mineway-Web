@@ -20,14 +20,37 @@ export async function POST(req) {
 
   // ─── เพิ่ม bytes เข้า DB แบบ atomic (increment) ────────────────────
   try {
-    await prisma.apiKey.updateMany({
-      where: { id: keyId },
-      data: {
-        rxBytes:    { increment: BigInt(rxBytes) },
-        txBytes:    { increment: BigInt(txBytes) },
-        lastUsedAt: new Date(),
-      },
-    });
+    const now = new Date();
+    const currentHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
+
+    await prisma.$transaction([
+      prisma.apiKey.updateMany({
+        where: { id: keyId },
+        data: {
+          rxBytes:    { increment: BigInt(rxBytes) },
+          txBytes:    { increment: BigInt(txBytes) },
+          lastUsedAt: now,
+        },
+      }),
+      prisma.bandwidthLog.upsert({
+        where: {
+          apiKeyId_timestamp: {
+            apiKeyId: keyId,
+            timestamp: currentHour
+          }
+        },
+        update: {
+          rxBytes: { increment: BigInt(rxBytes) },
+          txBytes: { increment: BigInt(txBytes) },
+        },
+        create: {
+          apiKeyId: keyId,
+          timestamp: currentHour,
+          rxBytes: BigInt(rxBytes),
+          txBytes: BigInt(txBytes),
+        }
+      })
+    ]);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

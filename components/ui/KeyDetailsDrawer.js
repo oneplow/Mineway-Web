@@ -2,6 +2,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { X, Copy, ShieldCheck, Trash2, Calendar, HardDrive, Globe, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
+import TunnelAnalyticsChart from "./TunnelAnalyticsChart";
+import TunnelTeamManager from "./TunnelTeamManager";
 
 function StatusBadge({ status }) {
   const cfg = {
@@ -21,6 +23,7 @@ function StatusBadge({ status }) {
 export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onToggle, onDeleteRequest, onResetRequest }) {
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
   const lastKeyRef = useRef(null);
 
 
@@ -62,7 +65,7 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
   // Reset internal state when drawer closes
   useEffect(() => {
     if (!isOpen) {
-      // Clean up if needed
+      setTimeout(() => setActiveTab("overview"), 300);
     }
   }, [isOpen]);
 
@@ -103,6 +106,15 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
         {/* Content (Scrollable) */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 dark:[&::-webkit-scrollbar-thumb]:bg-[#1e2330] [&::-webkit-scrollbar-thumb]:rounded-full">
 
+          <div className="flex bg-gray-100 dark:bg-[#0a0c0f] p-1 rounded-xl mb-2 border border-gray-200 dark:border-white/5">
+            <button onClick={() => setActiveTab('overview')} className={`flex-1 py-2 text-[13px] font-bold rounded-lg transition-all ${activeTab === 'overview' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>Overview</button>
+            <button onClick={() => setActiveTab('analytics')} className={`flex-1 py-2 text-[13px] font-bold rounded-lg transition-all ${activeTab === 'analytics' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>Analytics</button>
+            <button onClick={() => setActiveTab('team')} className={`flex-1 py-2 text-[13px] font-bold rounded-lg transition-all ${activeTab === 'team' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>Team</button>
+          </div>
+
+          {activeTab === 'overview' && (
+            <div className="space-y-6 animate-fade-in">
+
           {/* Key Prefix */}
           <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
             <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-3">API Key Prefix</div>
@@ -126,9 +138,9 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
             <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
               <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-3">ที่อยู่สำหรับเชื่อมต่อ</div>
               <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#0a0c0f] p-3 rounded-xl border border-gray-100 dark:border-[#1e2330]">
-                <code className="font-mono text-[14px] text-[#10d97e] flex-1 break-all select-all">play.lexten.store:{displayKey.assignedPort}</code>
+                <code className="font-mono text-[14px] text-[#10d97e] flex-1 break-all select-all">{displayKey.subdomain || "play.lexten.store"}:{displayKey.assignedPort}</code>
                 <button
-                  onClick={() => onCopy(`play.lexten.store:${displayKey.assignedPort}`)}
+                  onClick={() => onCopy(`${displayKey.subdomain || "play.lexten.store"}:${displayKey.assignedPort}`)}
                   className="p-2 text-gray-500 dark:text-[#8892a4] bg-white dark:bg-[#111318] hover:text-[#10d97e] dark:hover:text-[#10d97e] hover:shadow-sm border border-gray-200 dark:border-[#1e2330] rounded-lg transition-all"
                   title="คัดลอกที่อยู่"
                 >
@@ -188,6 +200,20 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
             </div>
           </div>
 
+        </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="animate-fade-in pt-2">
+              <TunnelAnalyticsChart tunnelId={displayKey.id} />
+            </div>
+          )}
+
+          {activeTab === 'team' && (
+            <div className="animate-fade-in pt-2">
+              <TunnelTeamManager tunnelId={displayKey.id} />
+            </div>
+          )}
         </div>
 
         {/* Footer Actions */}

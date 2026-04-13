@@ -70,7 +70,7 @@ export default function PaymentsPage() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="bg-gradient-to-br from-[#f8fafc] to-[#e2e8f0] dark:from-[#050505] dark:to-[#0a0c10] min-h-screen transition-colors duration-300">
+    <div className="w-full">
 
       <div className="pt-24 pb-12 px-6 md:px-12 max-w-[1100px] mx-auto animate-fade-in">
 

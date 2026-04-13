@@ -8,7 +8,10 @@ import {
   Server,
   KeyRound,
   LogOut,
-  Settings
+  Settings,
+  Globe,
+  Sliders,
+  Package
 } from "lucide-react";
 
 export default function AdminSidebar({ user }) {
@@ -17,7 +20,9 @@ export default function AdminSidebar({ user }) {
   const menuItems = [
     { href: "/admin", label: "Overview", icon: LayoutDashboard },
     { href: "/admin/users", label: "Users Management", icon: Users },
-    { href: "/admin/plans", label: "Plans & Packages", icon: Settings },
+    { href: "/admin/plans", label: "Plans & Packages", icon: Package },
+    { href: "/admin/domains", label: "Domains & Roots", icon: Globe },
+    { href: "/admin/settings", label: "Site Config", icon: Sliders },
     { href: "/admin/tunnels", label: "Tunnels Control", icon: KeyRound },
   ];
 

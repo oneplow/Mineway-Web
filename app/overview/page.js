@@ -1,13 +1,14 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useUser } from "@/components/UserProvider";
-import { Key, Activity, Copy, Plus, Globe, ShieldCheck, ChevronDown, CheckCircle2, AlertCircle, Trash2, RefreshCw } from "lucide-react";
+import { Key, Activity, Copy, Plus, Globe, ShieldCheck, ChevronDown, CheckCircle2, AlertCircle, Trash2, RefreshCw, Server, Lock, Users } from "lucide-react";
 import { REGIONS } from "@/lib/constants";
 import toast from "react-hot-toast";
 import PageLoader from "@/components/ui/PageLoader";
 import Modal from "@/components/ui/Modal";
 import KeyDetailsDrawer from "@/components/ui/KeyDetailsDrawer";
 import { useRouter } from "next/navigation";
+import { useSettings } from "@/components/SettingsProvider";
 
 function StatusBadge({ status }) {
   const cfg = {
@@ -27,9 +28,12 @@ function StatusBadge({ status }) {
 export default function OverviewPage() {
   const [user, setUser] = useState(null);
   const [keys, setKeys] = useState([]);
+  const [sharedKeys, setSharedKeys] = useState([]);
+  const [domains, setDomains] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { refreshUser } = useUser();
+  const settings = useSettings();
 
   const [selectedKeyForDrawer, setSelectedKeyForDrawer] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -37,22 +41,46 @@ export default function OverviewPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ name: "", region: "ap-southeast-1" });
+  const [form, setForm] = useState({
+    name: "",
+    region: "ap-southeast-1",
+    domainId: "",
+    isCustomPort: false
+  });
   const [creating, setCreating] = useState(false);
   const [newKeyValue, setNewKeyValue] = useState(null);
   const [noPlanModalOpen, setNoPlanModalOpen] = useState(false);
   const [regionDropdownOpen, setRegionDropdownOpen] = useState(false);
+  const [domainDropdownOpen, setDomainDropdownOpen] = useState(false);
 
   const fetchData = async () => {
     try {
-      const [userRes, keysRes] = await Promise.all([
+      const [userRes, keysRes, domainsRes] = await Promise.all([
         fetch("/api/user"),
-        fetch("/api/keys")
+        fetch("/api/keys"),
+        fetch("/api/domains")
       ]);
-      if (userRes.ok) setUser(await userRes.json());
-      if (keysRes.ok) setKeys(await keysRes.json());
+
+      if (userRes.ok) {
+        const u = await userRes.json();
+        setUser(u);
+      }
+      if (keysRes.ok) {
+        const data = await keysRes.json();
+        setKeys(data.keys || []);
+        setSharedKeys(data.sharedKeys || []);
+      }
+      if (domainsRes.ok) {
+        const d = await domainsRes.json();
+        setDomains(d);
+        if (d.length > 0) {
+          const defaultDomain = d.find(dm => dm.isDefault) || d[0];
+          setForm(prev => ({ ...prev, domainId: defaultDomain.id }));
+        }
+      }
     } catch (err) {
       console.error(err);
+      toast.error("ดึงข้อมูลหลักล้มเหลว");
     } finally {
       setLoading(false);
     }
@@ -86,7 +114,8 @@ export default function OverviewPage() {
         toast.error(data.error || "เกิดข้อผิดพลาดในการสร้าง");
       } else {
         setNewKeyValue(data.keyValue);
-        setForm({ name: "", region: "ap-southeast-1" });
+        const defaultDomain = domains.find(dm => dm.isDefault) || domains[0];
+        setForm({ name: "", region: "ap-southeast-1", domainId: defaultDomain?.id || "", isCustomPort: false });
         setShowCreate(false);
         toast.success("สร้าง API key สำเร็จ!");
         fetchData(); // Refresh list & stats
@@ -108,7 +137,6 @@ export default function OverviewPage() {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
       } else {
-        // Fallback for non-HTTPS (dev environment)
         const textarea = document.createElement("textarea");
         textarea.value = text;
         textarea.style.position = "fixed";
@@ -168,8 +196,8 @@ export default function OverviewPage() {
       if (res.ok) {
         toast.success("ระบบได้สร้าง API Key ใหม่แทนที่ตัวเดิมแล้ว");
         setResetModalOpen(false);
-        setSelectedKeyForDrawer(null); // Close drawer to show modal clearly
-        setNewKeyValue(data.keyValue); // Trigger the green success modal!
+        setSelectedKeyForDrawer(null);
+        setNewKeyValue(data.keyValue);
         fetchData();
       } else {
         toast.error(data.error || "ขออภัย ไม่สามารถรีเซ็ต Key ได้");
@@ -194,8 +222,6 @@ export default function OverviewPage() {
       });
       if (res.ok) {
         toast.success(`อัปเดตเป็น ${newStatus} แล้ว`, { id: toastId });
-
-        // Update local state smoothly without full reload if possible, but fetchData is safer
         if (selectedKeyForDrawer && selectedKeyForDrawer.id === key.id) {
           setSelectedKeyForDrawer({ ...selectedKeyForDrawer, status: newStatus });
         }
@@ -212,13 +238,21 @@ export default function OverviewPage() {
   if (loading) return <PageLoader />;
 
   const atLimit = keys.length >= (user?.stats?.maxKeys || user?.plan?.maxKeys || 1);
+  const domainPreview = `${form.name.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}.${domains.find(d => d.id === form.domainId)?.domain || '???'}`;
 
   return (
-    <div className="min-h-screen transition-colors duration-300 bg-gradient-to-br from-[#f8fafc] to-[#e2e8f0] dark:from-[#050505] dark:to-[#0a0c10]">
+    <div className="w-full">
 
       <div className="pt-24 pb-12 px-6 md:px-12 max-w-[1100px] mx-auto space-y-8 animate-fade-in">
 
-        {/* Header section */}
+        {/* Dashboard Announcement Banner */}
+        {settings.dashboardAnnouncement && (
+          <div className="bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl px-5 py-4 flex items-start gap-3">
+            <AlertCircle size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">{settings.dashboardAnnouncement}</p>
+          </div>
+        )}
+
         <div className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 rounded-[24px] p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center shadow-xl">
           <div>
             <h1 className="font-syne text-3xl lg:text-4xl font-bold mb-2 tracking-tight text-gray-900 dark:text-[#e8ecf4]">
@@ -241,7 +275,6 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 p-6 rounded-[20px] relative overflow-hidden group hover:ring-black/10 dark:hover:ring-[#10d97e]/30 transition-all duration-300 shadow-lg">
             <div className="absolute -top-4 -right-4 p-8 bg-[#10d97e]/5 rounded-full">
@@ -288,15 +321,13 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* API Keys Table */}
-        <div className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 rounded-[24px] shadow-xl">
-          <div className="p-6 md:p-8 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
-            <h3 className="font-syne text-xl font-bold tracking-tight text-gray-900 dark:text-[#e8ecf4]">Your API Keys</h3>
-          </div>
-
+        <div className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 rounded-[24px] shadow-xl p-6 md:p-8">
+          <h3 className="font-syne text-xl font-bold tracking-tight text-gray-900 dark:text-[#e8ecf4] mb-6">Your API Keys</h3>
           {keys.length === 0 ? (
-            <div className="p-12 text-center text-gray-400 dark:text-[#4a5568]">
-              ยังไม่มี API Key คุณสามารถสร้างใหม่ได้ที่ปุ่ม "สร้าง Key ใหม่"
+            <div className="flex flex-col items-center justify-center p-8 text-center bg-white dark:bg-[#111318] rounded-2xl border border-dashed border-gray-300 dark:border-[#1e2330]">
+              <Server size={32} className="text-gray-400 dark:text-[#4a5568] mb-3" />
+              <p className="text-[14px] font-bold text-gray-900 dark:text-[#e8ecf4]">ยังไม่ได้สร้าง Tunnel</p>
+              <p className="text-[12px] text-gray-500 dark:text-[#8892a4] mt-1 max-w-sm font-medium">กดปุ่มสร้าง Tunnel ด้านบนเพื่อเริ่มต้นเชื่อมต่อเซิร์ฟเวอร์ Minecraft ของคุณออกสู่โลกกว้าง</p>
             </div>
           ) : (
             <div className="overflow-x-auto w-full">
@@ -311,12 +342,10 @@ export default function OverviewPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5 dark:divide-white/5 text-[13px] font-medium text-gray-700 dark:text-[#e8ecf4]">
-
                   {keys.map(k => {
                     const regionObj = REGIONS.find(r => r.value === k.region) || REGIONS[0];
                     const rxGB = (k.rxBytes / (1024 * 1024 * 1024)).toFixed(2);
                     const txGB = (k.txBytes / (1024 * 1024 * 1024)).toFixed(2);
-
                     return (
                       <tr key={k.id} className="transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" onClick={() => setSelectedKeyForDrawer(k)}>
                         <td className="p-5 font-bold text-gray-900 dark:text-[#e8ecf4]">{k.name}</td>
@@ -325,7 +354,7 @@ export default function OverviewPage() {
                             <span className="font-mono tracking-wider">
                               {k.assignedPort ? (
                                 <>
-                                  <span className="text-gray-400 dark:text-[#8892a4]">play.lexten.store</span>
+                                  <span className="text-gray-400 dark:text-[#8892a4]">{k.subdomain || "play.lexten.store"}</span>
                                   <span className="text-[#10d97e]">:{k.assignedPort}</span>
                                 </>
                               ) : (
@@ -348,6 +377,31 @@ export default function OverviewPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {sharedKeys?.length > 0 && (
+            <div className="mt-8 relative">
+              <div className="absolute -inset-x-6 inset-y-0 bg-[#0a0c0f]/50 border-y border-white/5 pointer-events-none"></div>
+              <div className="relative py-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Users size={18} className="text-indigo-400" />
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-[#e8ecf4]">Shared with Me <span className="text-[11px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full ml-2 font-mono">TEAM</span></h3>
+                </div>
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full text-left border-collapse">
+                    <tbody className="divide-y divide-black/5 dark:divide-white/5 text-[13px] font-medium text-gray-700 dark:text-[#e8ecf4]">
+                      {sharedKeys.map(k => (
+                        <tr key={k.id} className="transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" onClick={() => setSelectedKeyForDrawer(k)}>
+                          <td className="p-5 font-bold text-gray-900 dark:text-[#e8ecf4]">{k.name}</td>
+                          <td className="p-5 text-gray-400">Shared Tunnel</td>
+                          <td className="p-5"><StatusBadge status={k.status} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -424,18 +478,90 @@ export default function OverviewPage() {
         onConfirm={handleCreate}
         isProcessing={creating}
       >
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
             <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">ชื่อ Tunnel / เซิร์ฟเวอร์</label>
             <div className="relative">
-              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 font-black tracking-widest text-sm">SRV</span>
-              <input placeholder="เช่น Survival Main" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                className="w-full bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl pl-[68px] pr-4 py-4 text-gray-900 dark:text-white text-xl font-black outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 shadow-inner transition-all" />
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-extrabold tracking-widest text-[12px]">SRV</span>
+              <input placeholder="เช่น my-survival" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                className="w-full bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl pl-[60px] pr-4 py-3 text-gray-900 dark:text-white text-sm font-bold outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 shadow-inner transition-all" />
+            </div>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2 px-1">ภาษาอังกฤษ ตัวเลข และ - เท่านั้น (3-32 ตัวอักษร)</p>
+          </div>
+
+          {domains.length > 0 && (
+            <div className="relative">
+              <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">โดเมนสำหรับเชื่อมต่อ</label>
+              <div
+                onClick={() => setDomainDropdownOpen(!domainDropdownOpen)}
+                className="w-full bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 text-gray-900 dark:text-white text-sm font-bold outline-none cursor-pointer hover:border-emerald-500 dark:hover:border-emerald-500 shadow-inner transition-all flex items-center justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <Globe size={16} className="text-emerald-400" />
+                  <span>{domains.find(d => d.id === form.domainId)?.domain || "เลือกโดเมน"}</span>
+                  {domains.find(d => d.id === form.domainId)?.isDefault && (
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-md">Default</span>
+                  )}
+                </span>
+                <ChevronDown size={18} className={`text-gray-500 transition-transform ${domainDropdownOpen ? 'rotate-180' : ''}`} />
+              </div>
+
+              {domainDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-[105]" onClick={() => setDomainDropdownOpen(false)}></div>
+                  <div className="absolute top-[105%] left-0 right-0 bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-xl shadow-xl z-[110] overflow-hidden animate-fade-in py-1">
+                    {domains.map(d => (
+                      <div
+                        key={d.id}
+                        onClick={() => { setForm({ ...form, domainId: d.id }); setDomainDropdownOpen(false); }}
+                        className={`px-4 py-3 cursor-pointer text-[14px] flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#1e2330] transition-colors ${form.domainId === d.id ? 'bg-[#10d97e]/10 text-[#10d97e] font-bold' : 'text-gray-700 dark:text-[#8892a4]'}`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Globe size={14} />
+                          <span>{d.domain}</span>
+                          {d.isDefault && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-md">Default</span>}
+                          {d.description && <span className="text-[11px] text-gray-500 ml-1">— {d.description}</span>}
+                        </span>
+                        {form.domainId === d.id && <CheckCircle2 size={16} className="text-[#10d97e]" />}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Live Preview */}
+          {form.name.trim() && form.domainId && (
+            <div className="p-3 bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl shadow-inner">
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">ที่อยู่สำหรับเชื่อมต่อ (Preview)</p>
+              <code className="flex items-center font-mono text-sm font-bold text-[#10d97e]">
+                {form.name.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}.{domains.find(d => d.id === form.domainId)?.domain || '???'}
+                {!form.isCustomPort && <span className="text-gray-500">:<span className="text-gray-400">PORT</span></span>}
+              </code>
+            </div>
+          )}
+
+          {/* VIP Custom Port toggle */}
+          <div 
+            className={`flex items-start gap-3 p-4 border rounded-xl mt-2 cursor-pointer transition-colors ${form.isCustomPort ? 'bg-indigo-500/10 border-indigo-500/30 dark:bg-indigo-500/20 dark:border-indigo-500/40' : 'bg-gray-50 border-gray-200 dark:bg-[#161a22] dark:border-[#1e2330] hover:border-indigo-500/50'}`} 
+            onClick={() => setForm(p => ({ ...p, isCustomPort: !p.isCustomPort }))}
+          >
+            <div className={`mt-0.5 w-5 h-5 rounded shadow-inner flex items-center justify-center transition-all ${form.isCustomPort ? 'bg-indigo-500 text-white' : 'bg-gray-200 dark:bg-gray-800'}`}>
+              {form.isCustomPort && <CheckCircle2 size={14} className="text-white" />}
+            </div>
+            <div>
+              <div className={`text-[13px] font-bold flex items-center gap-1.5 ${form.isCustomPort ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                VIP: บริการเชื่อมต่อแบบซ่อนพอร์ต (Custom Port)
+              </div>
+              <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1.5 leading-relaxed">
+                ให้ผู้เล่นสามารถเข้าเซิร์ฟเวอร์ด้วยที่อยู่นี้ได้โดยตรง ไม่ต้องพิมพ์พอร์ตตัวเลขตามหลัง <br/>
+                <span className="text-orange-500/80 font-bold">• มีค่าบริการ {settings.customPortPrice} Points (จะถูกหักทันทีเมื่อกดสร้าง)</span>
+              </div>
             </div>
           </div>
-          {/* 
-            TODO: Uncomment this block when Multi-Region support is fully implemented on the backend 
-          */}
+
+          {/* Region (hidden for now) */}
           <div className="relative hidden">
             <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">ภูมิภาค (Region)</label>
             <div
@@ -491,8 +617,8 @@ export default function OverviewPage() {
             <AlertCircle size={16} className="shrink-0" />
             กุญแจนี้จะแสดงครั้งเดียวเท่านั้น กรุณาคัดลอกและบันทึกไว้ในที่ปลอดภัย
           </div>
-          <div className="flex items-center bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl p-4 shadow-inner">
-            <code className="font-mono text-lg font-bold text-gray-900 dark:text-emerald-400 flex-1 break-all select-all">{newKeyValue}</code>
+          <div className="flex items-center bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl p-3 shadow-inner">
+            <code className="font-mono text-[15px] font-bold text-gray-900 dark:text-emerald-400 flex-1 break-all select-all">{newKeyValue}</code>
           </div>
         </div>
       </Modal>

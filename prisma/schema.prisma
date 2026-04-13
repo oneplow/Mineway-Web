@@ -28,6 +28,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   apiKeys       ApiKey[]
+  collaborations TunnelCollaborator[]
   payments      Payment[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -43,28 +44,49 @@ model Plan {
   maxKeys         Int
   maxNodes        Int
   features        Json     // list of feature strings
+  allowCustomPort Boolean  @default(false)
   isPopular       Boolean  @default(false)
   isActive        Boolean  @default(true)
   users           User[]
   createdAt       DateTime @default(now())
 }
 
+model Domain {
+  id          String   @id @default(cuid())
+  domain      String   @unique    // e.g. "lexten.store", "mineway.me"
+  description String?             // e.g. "Main Thailand Server"
+  cloudflareZoneId String?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  apiKeys     ApiKey[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model ApiKey {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String
-  prefix     String               // "mw_live_xK9p2mN8" — safe to show in UI
-  keyHash    String   @unique     // SHA-256 of the raw key — for verification only
-  region     String   @default("ap-southeast-1")
-  assignedPort Int?   @unique           // dedicated port for TCP+UDP (e.g. 10001)
-  status     String   @default("inactive") // active | inactive | suspended
-  rxBytes    BigInt   @default(0)
-  txBytes    BigInt   @default(0)
-  lastUsedAt DateTime?
-  expiresAt  DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String                    // display name (can be anything)
+  subdomain    String?                   // slug for subdomain, e.g. "mctester"
+  prefix       String                    // "mw_live_xK9p2mN8" — safe to show in UI
+  keyHash      String   @unique          // SHA-256 of the raw key — for verification only
+  region       String   @default("ap-southeast-1")
+  assignedPort Int?     @unique          // dedicated port for TCP+UDP (e.g. 10001)
+  isCustomPort Boolean  @default(false)
+  domainId     String?
+  domain       Domain?  @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  status       String   @default("inactive") // active | inactive | suspended
+  rxBytes      BigInt   @default(0)
+  txBytes      BigInt   @default(0)
+  lastUsedAt   DateTime?
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  bandwidthLogs BandwidthLog[]
+  collaborators TunnelCollaborator[]
+
+  @@unique([subdomain, domainId])  // prevent duplicate subdomains on same domain
 }
 
 model Payment {
@@ -114,4 +136,35 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model TunnelCollaborator {
+  id         String   @id @default(cuid())
+  apiKeyId   String
+  apiKey     ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       String   @default("viewer") // "viewer" or "manager"
+  createdAt  DateTime @default(now())
+
+  @@unique([apiKeyId, userId])
+}
+
+model BandwidthLog {
+  id        String   @id @default(cuid())
+  apiKeyId  String
+  apiKey    ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  rxBytes   BigInt
+  txBytes   BigInt
+  timestamp DateTime // Stored at the start of every hour (e.g., 2026-04-12T14:00:00Z)
+
+  @@unique([apiKeyId, timestamp])
+  @@index([apiKeyId, timestamp])
+}
+
+model SiteSetting {
+  key       String   @id
+  value     String
+  label     String?  // human-readable label for admin UI
+  updatedAt DateTime @updatedAt
 }

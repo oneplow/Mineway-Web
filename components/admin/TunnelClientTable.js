@@ -107,7 +107,7 @@ export default function TunnelClientTable({ initialTunnels }) {
                     <td className="px-7 py-5 whitespace-nowrap">
                       <div className="text-sm font-bold text-white">{t.name}</div>
                       <div className="text-[12px] text-gray-500 mt-0.5 font-mono">
-                        th.mineway.me:{t.assignedPort || "pending"}
+                        {t.subdomain && t.domain ? `${t.subdomain}.${t.domain.domain}` : "play.lexten.store"}:{t.assignedPort || "pending"}
                       </div>
                     </td>
                     <td className="px-7 py-5 whitespace-nowrap">
@@ -133,7 +133,7 @@ export default function TunnelClientTable({ initialTunnels }) {
                     <td className="px-7 py-5 whitespace-nowrap text-[13px] font-medium text-gray-500">
                       {t.lastUsedAt ? formatDistanceToNow(new Date(t.lastUsedAt), { addSuffix: true }) : "Never"}
                     </td>
-                    <td className="px-7 py-5 whitespace-nowrap text-right text-sm font-medium relative">
+                    <td className={`px-7 py-5 whitespace-nowrap text-right text-sm font-medium relative ${dropdownOpen === t.id ? 'z-50' : 'z-10'}`}>
                       <button 
                         onClick={() => setDropdownOpen(dropdownOpen === t.id ? null : t.id)}
                         className="text-gray-500 hover:text-white transition-colors p-2 rounded-xl hover:bg-gray-800 focus:outline-none"
