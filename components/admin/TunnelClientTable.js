@@ -33,7 +33,7 @@ export default function TunnelClientTable({ initialTunnels }) {
 
     try {
       const payload = { tunnelId: selectedTunnel.id };
-      
+
       if (activeModal === "delete") {
         payload.action = "delete";
       } else if (activeModal === "suspend") {
@@ -49,14 +49,14 @@ export default function TunnelClientTable({ initialTunnels }) {
       const data = await res.json();
       if (res.ok && data.success) {
         toast.success(data.message || "อัปเดตข้อมูลสำเร็จ!");
-        
+
         // Update local state
         if (activeModal === "delete") {
           setTunnels(tunnels.filter(t => t.id !== selectedTunnel.id));
         } else {
           setTunnels(tunnels.map(t => t.id === selectedTunnel.id ? { ...t, status: payload.action === "activate" ? "active" : "suspended" } : t));
         }
-        
+
         closeModal();
       } else {
         toast.error(data.error || "เกิดข้อผิดพลาดในการอัปเดต");
@@ -88,7 +88,7 @@ export default function TunnelClientTable({ initialTunnels }) {
               {tunnels.map((t) => {
                 const rxMB = (Number(t.rxBytes) / 1024 / 1024).toFixed(2);
                 const txMB = (Number(t.txBytes) / 1024 / 1024).toFixed(2);
-                
+
                 return (
                   <tr key={t.id} className="hover:bg-white/[0.02] transition-colors duration-200 group last:[&>td:first-child]:rounded-bl-[23px] last:[&>td:last-child]:rounded-br-[23px]">
                     <td className="px-7 py-5 whitespace-nowrap">
@@ -107,7 +107,7 @@ export default function TunnelClientTable({ initialTunnels }) {
                     <td className="px-7 py-5 whitespace-nowrap">
                       <div className="text-sm font-bold text-white">{t.name}</div>
                       <div className="text-[12px] text-gray-500 mt-0.5 font-mono">
-                        {t.subdomain && t.domain ? `${t.subdomain}.${t.domain.domain}` : "play.lexten.store"}:{t.assignedPort || "pending"}
+                        {t.subdomain && t.domain ? `${t.subdomain}.${t.domain.domain}` : "mineway.cloud"}:{t.assignedPort || "pending"}
                       </div>
                     </td>
                     <td className="px-7 py-5 whitespace-nowrap">
@@ -134,7 +134,7 @@ export default function TunnelClientTable({ initialTunnels }) {
                       {t.lastUsedAt ? formatDistanceToNow(new Date(t.lastUsedAt), { addSuffix: true }) : "Never"}
                     </td>
                     <td className={`px-7 py-5 whitespace-nowrap text-right text-sm font-medium relative ${dropdownOpen === t.id ? 'z-50' : 'z-10'}`}>
-                      <button 
+                      <button
                         onClick={() => setDropdownOpen(dropdownOpen === t.id ? null : t.id)}
                         className="text-gray-500 hover:text-white transition-colors p-2 rounded-xl hover:bg-gray-800 focus:outline-none"
                       >
@@ -195,14 +195,14 @@ export default function TunnelClientTable({ initialTunnels }) {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#050505]/80 backdrop-blur-md transition-opacity" onClick={closeModal}></div>
           <div className="relative bg-[#0d1017] border border-gray-800 rounded-[28px] w-full max-w-md animate-scale-up shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden">
-            
+
             <div className="px-8 py-6 border-b border-gray-800 bg-gray-900/30">
-               <h3 className="text-2xl font-extrabold text-white">
-                 {activeModal === "delete" ? "Delete Tunnel" : (selectedTunnel?.status === "active" ? "Suspend Tunnel" : "Activate Tunnel")}
-               </h3>
-               <p className="text-sm text-gray-400 mt-1">
-                 Targeting tunnel: <span className="text-emerald-400 font-bold">{selectedTunnel?.name}</span>
-               </p>
+              <h3 className="text-2xl font-extrabold text-white">
+                {activeModal === "delete" ? "Delete Tunnel" : (selectedTunnel?.status === "active" ? "Suspend Tunnel" : "Activate Tunnel")}
+              </h3>
+              <p className="text-sm text-gray-400 mt-1">
+                Targeting tunnel: <span className="text-emerald-400 font-bold">{selectedTunnel?.name}</span>
+              </p>
             </div>
 
             <div className="p-8">
@@ -221,9 +221,9 @@ export default function TunnelClientTable({ initialTunnels }) {
                   <>
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center ${selectedTunnel?.status === "active" ? "bg-amber-500/10" : "bg-emerald-500/10"}`}>
                       {selectedTunnel?.status === "active" ? (
-                         <ShieldAlert className="w-8 h-8 text-amber-500" />
+                        <ShieldAlert className="w-8 h-8 text-amber-500" />
                       ) : (
-                         <ShieldCheck className="w-8 h-8 text-emerald-500" />
+                        <ShieldCheck className="w-8 h-8 text-emerald-500" />
                       )}
                     </div>
                     <div>
@@ -238,26 +238,25 @@ export default function TunnelClientTable({ initialTunnels }) {
             </div>
 
             <div className="px-8 py-5 border-t border-gray-800 bg-gray-900/30 flex gap-4">
-              <button 
+              <button
                 onClick={closeModal}
                 disabled={isProcessing}
                 className="px-6 py-3.5 rounded-xl border border-gray-700 text-gray-300 font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleUpdate}
                 disabled={isProcessing}
-                className={`flex-1 py-3.5 rounded-xl text-white font-extrabold hover:brightness-110 shadow-lg transition-all disabled:opacity-50 ${
-                  activeModal === "delete" || selectedTunnel?.status === "active" 
-                    ? "bg-gradient-to-r from-rose-500 to-red-600 shadow-[0_0_20px_rgba(244,63,94,0.2)]" 
+                className={`flex-1 py-3.5 rounded-xl text-white font-extrabold hover:brightness-110 shadow-lg transition-all disabled:opacity-50 ${activeModal === "delete" || selectedTunnel?.status === "active"
+                    ? "bg-gradient-to-r from-rose-500 to-red-600 shadow-[0_0_20px_rgba(244,63,94,0.2)]"
                     : "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-[0_0_20px_rgba(16,217,126,0.2)]"
-                }`}
+                  }`}
               >
                 {isProcessing ? "Processing..." : "Confirm & Save"}
               </button>
             </div>
-            
+
           </div>
         </div>,
         document.body

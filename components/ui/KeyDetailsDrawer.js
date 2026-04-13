@@ -115,92 +115,92 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
           {activeTab === 'overview' && (
             <div className="space-y-6 animate-fade-in">
 
-          {/* Key Prefix */}
-          <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
-            <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-3">API Key Prefix</div>
-            <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#0a0c0f] p-3 rounded-xl border border-gray-100 dark:border-[#1e2330]">
-              <code className="font-mono text-[14px] text-gray-900 dark:text-[#e8ecf4] flex-1 break-all select-all">{displayKey.prefix}••••••••</code>
-              <button
-                onClick={() => onCopy(displayKey.prefix)}
-                className="p-2 text-gray-500 dark:text-[#8892a4] bg-white dark:bg-[#111318] hover:text-[#10d97e] dark:hover:text-[#10d97e] hover:shadow-sm border border-gray-200 dark:border-[#1e2330] rounded-lg transition-all"
-                title="คัดลอก Prefix"
-              >
-                <Copy size={18} />
-              </button>
-            </div>
-            <p className="text-[11px] text-gray-500 dark:text-[#4a5568] mt-3">
-              กุญแจเต็มจะแสดงครั้งเดียวตอนสร้างเท่านั้น ใช้ Prefix นี้เพื่อระบุตัวตนของ Key
-            </p>
-          </div>
-
-          {/* Connection Address */}
-          {displayKey.assignedPort && (
-            <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
-              <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-3">ที่อยู่สำหรับเชื่อมต่อ</div>
-              <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#0a0c0f] p-3 rounded-xl border border-gray-100 dark:border-[#1e2330]">
-                <code className="font-mono text-[14px] text-[#10d97e] flex-1 break-all select-all">{displayKey.subdomain || "play.lexten.store"}:{displayKey.assignedPort}</code>
-                <button
-                  onClick={() => onCopy(`${displayKey.subdomain || "play.lexten.store"}:${displayKey.assignedPort}`)}
-                  className="p-2 text-gray-500 dark:text-[#8892a4] bg-white dark:bg-[#111318] hover:text-[#10d97e] dark:hover:text-[#10d97e] hover:shadow-sm border border-gray-200 dark:border-[#1e2330] rounded-lg transition-all"
-                  title="คัดลอกที่อยู่"
-                >
-                  <Copy size={18} />
-                </button>
+              {/* Key Prefix */}
+              <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
+                <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-3">API Key Prefix</div>
+                <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#0a0c0f] p-3 rounded-xl border border-gray-100 dark:border-[#1e2330]">
+                  <code className="font-mono text-[14px] text-gray-900 dark:text-[#e8ecf4] flex-1 break-all select-all">{displayKey.prefix}••••••••</code>
+                  <button
+                    onClick={() => onCopy(displayKey.prefix)}
+                    className="p-2 text-gray-500 dark:text-[#8892a4] bg-white dark:bg-[#111318] hover:text-[#10d97e] dark:hover:text-[#10d97e] hover:shadow-sm border border-gray-200 dark:border-[#1e2330] rounded-lg transition-all"
+                    title="คัดลอก Prefix"
+                  >
+                    <Copy size={18} />
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-500 dark:text-[#4a5568] mt-3">
+                  กุญแจเต็มจะแสดงครั้งเดียวตอนสร้างเท่านั้น ใช้ Prefix นี้เพื่อระบุตัวตนของ Key
+                </p>
               </div>
-              <p className="text-[11px] text-gray-500 dark:text-[#4a5568] mt-3">
-                ใช้ที่อยู่นี้ได้ทั้ง Java Edition และ Bedrock Edition
-              </p>
-            </div>
-          )}
 
-          {/* Stats Info */}
-          <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
-            <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-4">ข้อมูลการเชื่อมต่อ</div>
-            <div className="space-y-4">
+              {/* Connection Address */}
+              {displayKey.assignedPort && (
+                <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
+                  <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-3">ที่อยู่สำหรับเชื่อมต่อ</div>
+                  <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#0a0c0f] p-3 rounded-xl border border-gray-100 dark:border-[#1e2330]">
+                    <code className="font-mono text-[14px] text-[#10d97e] flex-1 break-all select-all">{displayKey.subdomain || "mineway.cloud"}:{displayKey.assignedPort}</code>
+                    <button
+                      onClick={() => onCopy(`${displayKey.subdomain || "mineway.cloud"}:${displayKey.assignedPort}`)}
+                      className="p-2 text-gray-500 dark:text-[#8892a4] bg-white dark:bg-[#111318] hover:text-[#10d97e] dark:hover:text-[#10d97e] hover:shadow-sm border border-gray-200 dark:border-[#1e2330] rounded-lg transition-all"
+                      title="คัดลอกที่อยู่"
+                    >
+                      <Copy size={18} />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-[#4a5568] mt-3">
+                    ใช้ที่อยู่นี้ได้ทั้ง Java Edition และ Bedrock Edition
+                  </p>
+                </div>
+              )}
 
-              {/* 
+              {/* Stats Info */}
+              <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
+                <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-4">ข้อมูลการเชื่อมต่อ</div>
+                <div className="space-y-4">
+
+                  {/* 
                 TODO: Uncomment this block when Multi-Region support is fully implemented 
               */}
-              <div className="hidden items-center gap-4">
-                <div className="p-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-500 rounded-xl"><Globe size={18} /></div>
-                <div className="flex-1">
-                  <div className="text-[12px] text-gray-500 dark:text-[#8892a4]">ภูมิภาค (Region)</div>
-                  <div className="font-semibold text-gray-900 dark:text-[#e8ecf4]">{displayKey.region}</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-xl"><HardDrive size={18} /></div>
-                <div className="flex-1">
-                  <div className="text-[12px] text-gray-500 dark:text-[#8892a4]">แบนด์วิดท์ (In / Out)</div>
-                  <div className="font-mono text-sm text-gray-900 dark:text-[#e8ecf4]">
-                    <span className="text-[#10d97e]">{rxGB} GB</span> <span className="text-gray-300 dark:text-[#4a5568]">/</span> <span className="text-blue-500">{txGB} GB</span>
+                  <div className="hidden items-center gap-4">
+                    <div className="p-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-500 rounded-xl"><Globe size={18} /></div>
+                    <div className="flex-1">
+                      <div className="text-[12px] text-gray-500 dark:text-[#8892a4]">ภูมิภาค (Region)</div>
+                      <div className="font-semibold text-gray-900 dark:text-[#e8ecf4]">{displayKey.region}</div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-xl"><Calendar size={18} /></div>
-                <div className="flex-1">
-                  <div className="text-[12px] text-gray-500 dark:text-[#8892a4]">วันที่สร้าง</div>
-                  <div className="font-semibold text-gray-900 dark:text-[#e8ecf4]">{new Date(displayKey.createdAt).toLocaleDateString('th-TH')}</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-purple-50 dark:bg-purple-500/10 text-purple-500 rounded-xl"><Calendar size={18} /></div>
-                <div className="flex-1">
-                  <div className="text-[12px] text-gray-500 dark:text-[#8892a4]">ใช้งานล่าสุด</div>
-                  <div className="font-semibold text-gray-900 dark:text-[#e8ecf4]">
-                    {displayKey.lastUsedAt ? new Date(displayKey.lastUsedAt).toLocaleString('th-TH') : "ยังไม่เคยใช้งาน"}
+                  <div className="flex items-center gap-4">
+                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-xl"><HardDrive size={18} /></div>
+                    <div className="flex-1">
+                      <div className="text-[12px] text-gray-500 dark:text-[#8892a4]">แบนด์วิดท์ (In / Out)</div>
+                      <div className="font-mono text-sm text-gray-900 dark:text-[#e8ecf4]">
+                        <span className="text-[#10d97e]">{rxGB} GB</span> <span className="text-gray-300 dark:text-[#4a5568]">/</span> <span className="text-blue-500">{txGB} GB</span>
+                      </div>
+                    </div>
                   </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="p-2.5 bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-xl"><Calendar size={18} /></div>
+                    <div className="flex-1">
+                      <div className="text-[12px] text-gray-500 dark:text-[#8892a4]">วันที่สร้าง</div>
+                      <div className="font-semibold text-gray-900 dark:text-[#e8ecf4]">{new Date(displayKey.createdAt).toLocaleDateString('th-TH')}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="p-2.5 bg-purple-50 dark:bg-purple-500/10 text-purple-500 rounded-xl"><Calendar size={18} /></div>
+                    <div className="flex-1">
+                      <div className="text-[12px] text-gray-500 dark:text-[#8892a4]">ใช้งานล่าสุด</div>
+                      <div className="font-semibold text-gray-900 dark:text-[#e8ecf4]">
+                        {displayKey.lastUsedAt ? new Date(displayKey.lastUsedAt).toLocaleString('th-TH') : "ยังไม่เคยใช้งาน"}
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
             </div>
-          </div>
-
-        </div>
           )}
 
           {activeTab === 'analytics' && (

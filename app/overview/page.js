@@ -354,7 +354,7 @@ export default function OverviewPage() {
                             <span className="font-mono tracking-wider">
                               {k.assignedPort ? (
                                 <>
-                                  <span className="text-gray-400 dark:text-[#8892a4]">{k.subdomain || "play.lexten.store"}</span>
+                                  <span className="text-gray-400 dark:text-[#8892a4]">{k.subdomain || "mineway.cloud"}</span>
                                   <span className="text-[#10d97e]">:{k.assignedPort}</span>
                                 </>
                               ) : (
@@ -543,8 +543,8 @@ export default function OverviewPage() {
           )}
 
           {/* VIP Custom Port toggle */}
-          <div 
-            className={`flex items-start gap-3 p-4 border rounded-xl mt-2 cursor-pointer transition-colors ${form.isCustomPort ? 'bg-indigo-500/10 border-indigo-500/30 dark:bg-indigo-500/20 dark:border-indigo-500/40' : 'bg-gray-50 border-gray-200 dark:bg-[#161a22] dark:border-[#1e2330] hover:border-indigo-500/50'}`} 
+          <div
+            className={`flex items-start gap-3 p-4 border rounded-xl mt-2 cursor-pointer transition-colors ${form.isCustomPort ? 'bg-indigo-500/10 border-indigo-500/30 dark:bg-indigo-500/20 dark:border-indigo-500/40' : 'bg-gray-50 border-gray-200 dark:bg-[#161a22] dark:border-[#1e2330] hover:border-indigo-500/50'}`}
             onClick={() => setForm(p => ({ ...p, isCustomPort: !p.isCustomPort }))}
           >
             <div className={`mt-0.5 w-5 h-5 rounded shadow-inner flex items-center justify-center transition-all ${form.isCustomPort ? 'bg-indigo-500 text-white' : 'bg-gray-200 dark:bg-gray-800'}`}>
@@ -555,7 +555,7 @@ export default function OverviewPage() {
                 VIP: บริการเชื่อมต่อแบบซ่อนพอร์ต (Custom Port)
               </div>
               <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1.5 leading-relaxed">
-                ให้ผู้เล่นสามารถเข้าเซิร์ฟเวอร์ด้วยที่อยู่นี้ได้โดยตรง ไม่ต้องพิมพ์พอร์ตตัวเลขตามหลัง <br/>
+                ให้ผู้เล่นสามารถเข้าเซิร์ฟเวอร์ด้วยที่อยู่นี้ได้โดยตรง ไม่ต้องพิมพ์พอร์ตตัวเลขตามหลัง <br />
                 <span className="text-orange-500/80 font-bold">• มีค่าบริการ {settings.customPortPrice} Points (จะถูกหักทันทีเมื่อกดสร้าง)</span>
               </div>
             </div>
