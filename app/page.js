@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Zap, Lock, ChartBar, Globe, RefreshCcw, Banknote, Pickaxe, Sun, Moon } from "lucide-react";
-import { useTheme } from "next-themes";
 import { useSettings } from "@/components/SettingsProvider";
 import React from "react";
+import { useTheme } from "@/components/ThemeProvider";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const FEATURES = [
   { icon: <Zap size={28} className="text-emerald-500" />, title: "ติดตั้งง่าย", desc: "แค่ใส่ plugin + API key แล้วเซิร์ฟคุณก็ออนไลน์ได้ทันที ไม่ต้องยุ่งกับ router หรือ port forwarding" },
@@ -17,19 +17,15 @@ const FEATURES = [
 ];
 
 const PLANS = [
-  { name: "Free", price: "0", bw: "10 GB/เดือน", players: "5 players", nodes: "1 node" },
-  { name: "Starter", price: "99", bw: "100 GB/เดือน", players: "20 players", nodes: "3 nodes", popular: true },
-  { name: "Pro", price: "299", bw: "500 GB/เดือน", players: "ไม่จำกัด", nodes: "ทุก node" },
+  { name: "Free", price: "0", bw: "10 GB/เดือน", players: "5 players", keys: "1 API Key" },
+  { name: "Starter", price: "99", bw: "100 GB/เดือน", players: "20 players", keys: "3 API Keys (+ซื้อช่องได้)" , popular: true },
+  { name: "Pro", price: "299", bw: "500 GB/เดือน", players: "ไม่จำกัด", keys: "10 API Keys (+ซื้อช่องได้)" },
 ];
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
   const settings = useSettings();
-  const [mounted, setMounted] = useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  const hydrated = useHydrated();
 
   return (
     <div className="min-h-screen transition-colors duration-300 bg-gradient-to-br from-[#f8fafc] to-[#e2e8f0] dark:from-[#050505] dark:to-[#0a0c10]">
@@ -46,7 +42,7 @@ export default function Home() {
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 ring-1 ring-transparent hover:ring-black/5 dark:hover:ring-white/5 transition-all"
             >
-              {mounted ? (theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />) : <Sun size={18} className="opacity-0" />}
+              {hydrated ? (theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />) : <Sun size={18} className="opacity-0" />}
             </button>
             <Link href="/auth/login" className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-[#8892a4] hover:bg-gray-100 dark:hover:bg-[#1e2330] transition-colors">
               เข้าสู่ระบบ
@@ -137,7 +133,7 @@ export default function Home() {
                   <span className="text-gray-500 font-bold">฿/เดือน</span>
                 </div>
                 <div className="flex flex-col gap-2.5 mb-7">
-                  {[p.bw, p.players, p.nodes].map((item,j) => (
+                  {[p.bw, p.players, p.keys].map((item,j) => (
                     <div key={j} className="flex items-center gap-2 text-sm text-gray-600 dark:text-[#8892a4]">
                       <span className="text-[#10d97e]">✓</span> {item}
                     </div>

@@ -7,6 +7,20 @@ import MaintenanceBanner from "@/components/MaintenanceBanner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
+const themeInitScript = `
+  (function() {
+    try {
+      var storageKey = "theme";
+      var storedTheme = localStorage.getItem(storageKey) || "system";
+      var resolvedTheme = storedTheme === "system"
+        ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+        : storedTheme;
+      document.documentElement.classList.remove("light", "dark");
+      document.documentElement.classList.add(resolvedTheme);
+    } catch (error) {}
+  })();
+`;
+
 export const metadata = {
   title: "Mineway — Minecraft Server Gateway",
   description: "Expose your Minecraft server to the internet through our secure VPS tunnel.",
@@ -19,6 +33,7 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Playpen+Sans+Thai:wght@500;600;700;800&family=Sarabun:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="bg-gradient-to-br from-[#f8fafc] to-[#e2e8f0] dark:from-[#050505] dark:to-[#0a0c10] text-gray-900 dark:text-gray-100 transition-colors duration-300 antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
@@ -46,4 +61,3 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
-

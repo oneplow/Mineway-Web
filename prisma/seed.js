@@ -6,6 +6,26 @@ async function main() {
 
   // Delete all existing plans to avoid duplicates in this simple seed
   await prisma.plan.deleteMany({});
+
+  const free = await prisma.plan.create({
+    data: {
+      name: "free",
+      displayName: "Free Trial",
+      pricePoints: 0,
+      bandwidthGB: 5,
+      maxPlayers: 5,
+      maxKeys: 1,
+      maxNodes: 1,
+      isPopular: false,
+      isActive: true,
+      features: [
+        "ทดลองใช้ฟรีไม่มีกำหนด",
+        "จำกัดแบนด์วิดท์ 5 GB/เดือน",
+        "จำกัดผู้เล่นสูงสุด 5 คน",
+        "Support ระดับชุมชน"
+      ]
+    }
+  });
   
   const starter = await prisma.plan.create({
     data: {
@@ -67,7 +87,7 @@ async function main() {
   });
 
   console.log("Seeding finished successfully.");
-  console.log({ starter, pro, enterprise });
+  console.log({ free, starter, pro, enterprise });
 }
 
 main()

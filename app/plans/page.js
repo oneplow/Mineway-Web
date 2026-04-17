@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useUser } from '@/components/UserProvider';
 import { Zap, Server, Shield, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import PageLoader from '@/components/ui/PageLoader';
 import Modal from '@/components/ui/Modal';
@@ -20,14 +21,23 @@ export default function PlansPage() {
   const router = useRouter();
 
   const fetchData = async () => {
+    let shouldRedirect = false;
     try {
-      const [uRes, pRes] = await Promise.all([fetch("/api/user"), fetch("/api/plans")]);
+      const [uRes, pRes] = await Promise.all([
+        fetch("/api/user?t=" + Date.now(), { cache: "no-store" }),
+        fetch("/api/plans?t=" + Date.now(), { cache: "no-store" })
+      ]);
+      if (uRes.status === 401 || uRes.status === 404) {
+        shouldRedirect = true;
+        await signOut({ callbackUrl: "/auth/login", redirect: true });
+        return;
+      }
       if (uRes.ok) setUser(await uRes.json());
       if (pRes.ok) setPlans(await pRes.json());
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!shouldRedirect) setLoading(false);
     }
   };
 
@@ -37,7 +47,7 @@ export default function PlansPage() {
     if (user?.plan?.id === plan.id) {
       return toast.error("คุณกำลังใช้แพ็กเกจนี้อยู่แล้ว");
     }
-    if (user?.points < plan.pricePoints) {
+    if (plan.pricePoints > 0 && user?.points < plan.pricePoints) {
       toast.error("ยอดเงินไม่เพียงพอ กำลังพาไปหน้าเติมเงิน...");
       setTimeout(() => router.push("/payments"), 2000);
       return;
@@ -78,7 +88,7 @@ export default function PlansPage() {
   return (
     <div className="w-full">
 
-      <div className="pt-24 pb-16 px-6 md:px-12 max-w-[1100px] mx-auto animate-fade-in">
+      <div className="pt-8 md:pt-12 pb-16 px-6 md:px-12 max-w-[1100px] mx-auto animate-fade-in">
         {/* Header section */}
         <div className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 rounded-[24px] p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center mb-8 shadow-xl">
           <div>
@@ -117,8 +127,17 @@ export default function PlansPage() {
 
                 <h3 className="text-xl md:text-2xl font-bold mb-2 text-gray-900 dark:text-[#e8ecf4]">{plan.displayName}</h3>
                 <div className="flex items-baseline mb-6 border-b border-black/5 dark:border-white/5 pb-6">
-                  <span className="text-4xl md:text-5xl font-extrabold text-[#10d97e]">{plan.pricePoints}</span>
-                  <span className="text-gray-500 dark:text-[#8892a4] font-semibold ml-2 text-sm md:text-md">Pts / เดือน</span>
+                  {plan.pricePoints === 0 ? (
+                    <>
+                      <span className="text-4xl md:text-5xl font-extrabold text-[#10d97e]">ฟรี</span>
+                      <span className="text-gray-500 dark:text-[#8892a4] font-semibold ml-2 text-sm md:text-md">ไม่มีค่าใช้จ่าย</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-4xl md:text-5xl font-extrabold text-[#10d97e]">{plan.pricePoints}</span>
+                      <span className="text-gray-500 dark:text-[#8892a4] font-semibold ml-2 text-sm md:text-md">Pts / เดือน</span>
+                    </>
+                  )}
                 </div>
 
                 <ul className="mb-8 space-y-4 flex-1">
@@ -127,12 +146,15 @@ export default function PlansPage() {
                     <span className="font-medium">{plan.bandwidthGB} GB ทราฟฟิก</span>
                   </li>
                   <li className="flex items-center text-gray-700 dark:text-[#e8ecf4] text-[14px]">
-                    <div className="bg-emerald-50 dark:bg-emerald-500/10 p-2 rounded-lg mr-3 text-[#10d97e]"><Server size={18} /></div>
-                    <span className="font-medium">รับได้ {plan.maxPlayers === 0 ? "ไม่จำกัด" : plan.maxPlayers} คน</span>
-                  </li>
-                  <li className="flex items-center text-gray-700 dark:text-[#e8ecf4] text-[14px]">
                     <div className="bg-emerald-50 dark:bg-emerald-500/10 p-2 rounded-lg mr-3 text-[#10d97e]"><Shield size={18} /></div>
-                    <span className="font-medium">สร้างได้ {plan.maxKeys} APIs</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium">
+                        สร้างได้ {isCurrent ? (plan.maxKeys + (user?.extraKeys || 0)) : plan.maxKeys} APIs
+                      </span>
+                      <span className="text-[10px] text-gray-400 dark:text-[#4a5568]">
+                        {isCurrent && (user?.extraKeys || 0) > 0 ? `(รวมช่องเสริม ${user.extraKeys} ช่อง)` : "(สามารถซื้อช่องเพิ่มได้ภายหลัง)"}
+                      </span>
+                    </div>
                   </li>
                   {features.map((f, i) => (
                     <li key={i} className="flex items-center text-gray-500 dark:text-[#8892a4] text-[13px] ml-1">
@@ -147,7 +169,7 @@ export default function PlansPage() {
                   disabled={isCurrent}
                   className={`w-full py-3.5 font-bold rounded-xl transition-all ${isCurrent ? 'bg-black/5 dark:bg-white/5 text-gray-400 dark:text-[#4a5568] cursor-not-allowed' : plan.isPopular ? 'bg-[#10d97e] hover:bg-[#0ea865] text-white shadow-[#10d97e]/20 shadow-md' : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-gray-900 dark:text-white ring-1 ring-black/5 dark:ring-white/5'}`}
                 >
-                  {isCurrent ? "กำลังใช้งาน" : `เลือกแพ็กเกจ ${plan.displayName}`}
+                  {isCurrent ? "กำลังใช้งาน" : plan.pricePoints === 0 ? "เริ่มต้นฟรี" : `เลือกแพ็กเกจ ${plan.displayName}`}
                 </button>
               </div>
             );
@@ -159,7 +181,7 @@ export default function PlansPage() {
         isOpen={confirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
         title="ขอยืนยันการสั่งซื้อแพ็กเกจ"
-        confirmText={`ยืนยัน, หัก ${selectedPlan?.pricePoints} Pts`}
+        confirmText={selectedPlan?.pricePoints === 0 ? "เปิดใช้งานฟรี" : `ยืนยัน, หัก ${selectedPlan?.pricePoints} Pts`}
         onConfirm={executePurchase}
         isProcessing={isProcessing}
       >
@@ -167,8 +189,15 @@ export default function PlansPage() {
           คุณกำลังจะเปลี่ยนไปใช้แพ็กเกจ <span className="font-bold text-[#10d97e]">{selectedPlan?.displayName}</span>
         </p>
         <p className="mt-3 bg-gray-50 dark:bg-[#0a0c0f] border border-gray-200 dark:border-[#1e2330] rounded-xl p-3 text-sm">
-          ระบบจะหัก <strong className="text-gray-900 dark:text-white">{selectedPlan?.pricePoints} Points</strong> จากกระเป๋าของคุณ
-          โดยแพ็กเกจใหม่จะเริ่มนับโควต้าทันทีหลังจากทำรายการสำเร็จ
+          {selectedPlan?.pricePoints === 0 ? (
+            <>แพ็กเกจนี้ <strong className="text-[#10d97e]">ไม่มีค่าใช้จ่าย</strong> โควต้าจะเริ่มนับทันทีหลังเปิดใช้งาน</>
+          ) : (
+            <>ระบบจะหัก <strong className="text-gray-900 dark:text-white">{selectedPlan?.pricePoints} Points</strong> จากกระเป๋าของคุณ
+              โดยแพ็กเกจใหม่จะเริ่มนับโควต้าทันทีหลังจากทำรายการสำเร็จ</>
+          )}
+        </p>
+        <p className="mt-2 text-[10px] text-blue-500 font-bold px-1">
+          * ช่องเสริม (Extra Slots) ที่คุณซื้อไปแล้วจะยังคงอยู่ถาวร และจะถูกบวกเพิ่มจากสิทธิ์ของแพ็กเกจใหม่โดยอัตโนมัติ
         </p>
       </Modal>
 

@@ -6,9 +6,59 @@ import { createPortal } from "react-dom";
 import { MoreVertical, Globe, Plus, Trash2, Edit2, ShieldCheck, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
 
+function PingBadge({ ping }) {
+  if (ping === undefined) return <span className="text-[10px] text-gray-500">Checking...</span>;
+  if (ping === -1) return <span className="text-[10px] text-red-500 font-bold bg-red-500/10 px-2 rounded-full">Offline</span>;
+  
+  let colorClass = "text-emerald-500";
+  let dotClass = "bg-emerald-500";
+  if (ping > 150) {
+    colorClass = "text-red-500";
+    dotClass = "bg-red-500";
+  } else if (ping > 50) {
+    colorClass = "text-amber-500";
+    dotClass = "bg-amber-500";
+  }
+
+  return (
+    <span className={`flex items-center gap-1 text-[11px] font-bold ${colorClass} bg-white/5 px-2 rounded-full py-0.5`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dotClass} animate-pulse`} />
+      {ping}ms
+    </span>
+  );
+}
+
 export default function DomainClientTable({ initialDomains }) {
   const [domains, setDomains] = useState(initialDomains);
   const [dropdownOpen, setDropdownOpen] = useState(null);
+  
+  const [pingResults, setPingResults] = useState({});
+
+  React.useEffect(() => {
+    if (!domains || domains.length === 0) return;
+    const fetchPings = async () => {
+      const results = { ...pingResults };
+      let changed = false;
+      const promises = domains.map(async (d) => {
+        if (results[d.id] !== undefined) return; // already scanned
+        changed = true;
+        const start = performance.now();
+        try {
+          await fetch(`https://tunnel.${d.domain}/health`, {
+            mode: 'no-cors',
+            cache: 'no-store',
+            signal: AbortSignal.timeout(3000)
+          });
+          results[d.id] = Math.round(performance.now() - start);
+        } catch (e) {
+          results[d.id] = -1;
+        }
+      });
+      await Promise.all(promises);
+      if (changed) setPingResults(results);
+    };
+    fetchPings();
+  }, [domains]);
 
   // Modal State
   const [modalType, setModalType] = useState(null); // 'create', 'edit', 'delete'
@@ -18,13 +68,14 @@ export default function DomainClientTable({ initialDomains }) {
   const [form, setForm] = useState({
     domain: "",
     description: "",
+    tunnelNode: "http://localhost:8765",
     cloudflareZoneId: "",
     isDefault: false,
     isActive: true,
   });
 
   const openCreateModal = () => {
-    setForm({ domain: "", description: "", cloudflareZoneId: "", isDefault: false, isActive: true });
+    setForm({ domain: "", description: "", tunnelNode: "http://localhost:8765", cloudflareZoneId: "", isDefault: false, isActive: true });
     setModalType("create");
     setSelectedDomain(null);
   };
@@ -33,6 +84,7 @@ export default function DomainClientTable({ initialDomains }) {
     setForm({
       domain: d.domain,
       description: d.description || "",
+      tunnelNode: d.tunnelNode || "http://localhost:8765",
       cloudflareZoneId: d.cloudflareZoneId || "",
       isDefault: d.isDefault,
       isActive: d.isActive,
@@ -142,8 +194,9 @@ export default function DomainClientTable({ initialDomains }) {
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-[#121620] border-b border-white/5">
-                <th className="px-7 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest first:rounded-tl-[23px]">Domain</th>
+                <th className="px-7 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Domain</th>
                 <th className="px-7 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Description</th>
+                <th className="px-7 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Tunnel Endpoint</th>
                 <th className="px-7 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Tunnels</th>
                 <th className="px-7 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Settings</th>
                 <th className="px-7 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest text-right last:rounded-tr-[23px]">Actions</th>
@@ -163,6 +216,7 @@ export default function DomainClientTable({ initialDomains }) {
                            {d.isDefault && (
                              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-md uppercase tracking-wider">Default</span>
                            )}
+                           <PingBadge ping={pingResults[d.id]} />
                         </div>
                         <div className="text-[11px] text-gray-500 font-mono mt-0.5">ID: {d.id}</div>
                       </div>
@@ -170,6 +224,11 @@ export default function DomainClientTable({ initialDomains }) {
                   </td>
                   <td className="px-7 py-5">
                     <span className="text-[13px] text-gray-400 font-medium">{d.description || "—"}</span>
+                  </td>
+                  <td className="px-7 py-5">
+                    <div className="flex items-center space-x-2">
+                       <span className="text-[12px] font-mono text-cyan-400/80 bg-cyan-500/10 px-2 py-1 rounded-md">{d.tunnelNode || "http://localhost:8765"}</span>
+                    </div>
                   </td>
                   <td className="px-7 py-5 whitespace-nowrap">
                     <div className="flex items-center">
@@ -282,6 +341,18 @@ export default function DomainClientTable({ initialDomains }) {
                     onChange={e => setForm({ ...form, description: e.target.value })}
                     className="w-full bg-[#161a22] border border-gray-800 rounded-xl px-4 py-3.5 text-white font-medium outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all font-mono placeholder:font-sans placeholder:text-gray-600" 
                   />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">Tunnel Node URL</label>
+                  <input 
+                    type="text"
+                    placeholder="ex. http://th1.mineway.cloud:8765" 
+                    value={form.tunnelNode} 
+                    onChange={e => setForm({ ...form, tunnelNode: e.target.value })}
+                    className="w-full bg-[#161a22] border border-gray-800 rounded-xl px-4 py-3.5 text-cyan-400 font-medium outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all font-mono placeholder:font-sans placeholder:text-gray-600" 
+                  />
+                  <p className="text-[11px] text-gray-500 mt-2 px-1">ที่อยู่ของ VPS โหนด (ต้องขึ้นต้นด้วย http:// และมี port 8765)</p>
                 </div>
 
                 <div className="bg-[#121620] border border-white/5 rounded-2xl p-5 shadow-inner">

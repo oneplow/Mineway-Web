@@ -22,6 +22,7 @@ model User {
   image         String?
   password      String?
   points        Int       @default(0)
+  extraKeys     Int       @default(0)
   role          Role      @default(USER)
   planId        String?
   plan          Plan?     @relation(fields: [planId], references: [id])
@@ -30,6 +31,7 @@ model User {
   apiKeys       ApiKey[]
   collaborations TunnelCollaborator[]
   payments      Payment[]
+  redemptionLogs RedemptionLog[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -55,6 +57,7 @@ model Domain {
   id          String   @id @default(cuid())
   domain      String   @unique    // e.g. "lexten.store", "mineway.me"
   description String?             // e.g. "Main Thailand Server"
+  tunnelNode  String?  @default("http://localhost:8765") // e.g. "http://th1.mineway.cloud:8765"
   cloudflareZoneId String?
   isDefault   Boolean  @default(false)
   isActive    Boolean  @default(true)
@@ -93,12 +96,12 @@ model Payment {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount    Int      // amount in THB
+  amount    Float    // amount in THB (Float allows unique decimals like 100.37)
   points    Int      // points credited
-  method    String   // promptpay | truemoney | card
+  method    String   // promptpay | truemoney | card | redeem_code
   status    String   @default("pending") // pending | completed | failed
-  ref       String?  // payment reference
-  slip      String?  // image URL for slip verification
+  ref       String?  // payment reference or slip payload
+  slip      String?  // image URL for slip verification format
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -167,4 +170,26 @@ model SiteSetting {
   value     String
   label     String?  // human-readable label for admin UI
   updatedAt DateTime @updatedAt
+}
+
+model RedemptionCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  points      Int
+  maxUses     Int      @default(1)
+  currentUses Int      @default(0)
+  expiresAt   DateTime?
+  logs        RedemptionLog[]
+  createdAt   DateTime @default(now())
+}
+
+model RedemptionLog {
+  id         String         @id @default(cuid())
+  codeId     String
+  code       RedemptionCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redeemedAt DateTime       @default(now())
+
+  @@unique([codeId, userId])
 }

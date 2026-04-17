@@ -35,6 +35,7 @@ export async function GET() {
       email: user.email,
       image: user.image,
       points: user.points,
+      extraKeys: user.extraKeys || 0,
       plan: user.plan
         ? {
             id: user.plan.id,
@@ -51,6 +52,7 @@ export async function GET() {
         totalKeys,
         totalTrafficGB: parseFloat(totalTrafficGB),
         bandwidthLimitGB: user.plan?.bandwidthGB || 0,
+        maxKeys: (user.plan?.maxKeys || 1) + (user.extraKeys || 0),
       },
     });
   } catch (error) {

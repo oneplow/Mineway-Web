@@ -24,10 +24,12 @@ export default function ProfilePage() {
   }, []);
 
   const fetchUserData = async () => {
+    let shouldRedirect = false;
     try {
       const res = await fetch("/api/user");
-      if (res.status === 401) {
-        router.push("/auth/signin");
+      if (res.status === 401 || res.status === 404) {
+        shouldRedirect = true;
+        await signOut({ callbackUrl: '/auth/login', redirect: true });
         return;
       }
       const data = await res.json();
@@ -41,7 +43,7 @@ export default function ProfilePage() {
       console.error(err);
       toast.error("ดึงข้อมูลล้มเหลว");
     } finally {
-      setIsLoading(false);
+      if (!shouldRedirect) setIsLoading(false);
     }
   };
 
@@ -91,7 +93,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen transition-colors duration-300 bg-[#f8fafc] dark:bg-[#0a0c0f]">
 
-      <div className="pt-24 pb-16 px-6 md:px-12 max-w-[1100px] mx-auto animate-fade-in">
+      <div className="pt-8 md:pt-12 pb-16 px-6 md:px-12 max-w-[1100px] mx-auto animate-fade-in">
         {/* Header section */}
         <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center mb-8 shadow-sm">
           <div>
@@ -133,7 +135,7 @@ export default function ProfilePage() {
               </div>
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+              onClick={() => signOut({ callbackUrl: '/auth/login' })}
               className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl border border-red-200 dark:border-red-500/30 bg-white dark:bg-[#111318] hover:bg-red-50 dark:hover:bg-red-500/10 text-red-600 dark:text-red-500 font-bold transition-colors shadow-sm"
             >
               <LogOut size={18} />

@@ -1,29 +1,28 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight, Sun, Moon, User, Pickaxe, Sparkles } from "lucide-react";
-import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useSettings } from "@/components/SettingsProvider";
+import { useTheme } from "@/components/ThemeProvider";
+import { useHydrated } from "@/lib/use-hydrated";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export default function LoginPage() {
   const [globalError, setGlobalError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const settings = useSettings();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const hydrated = useHydrated();
 
   const [formData, setFormData] = useState({
     identifier: "",
     password: "",
+    turnstileToken: "",
   });
 
   const handleChange = (e) => {
@@ -53,6 +52,31 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // Step 1: Pre-check credentials via custom API (returns specific error codes)
+      const preCheck = await fetch("/api/precheck-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: formData.identifier,
+          password: formData.password,
+          turnstileToken: formData.turnstileToken,
+        }),
+      });
+
+      const preCheckData = await preCheck.json();
+
+      if (!preCheck.ok) {
+        if (preCheckData.error === "unverified_email") {
+          setGlobalError("บัญชีของคุณยังไม่ได้ยืนยันอีเมล กรุณาตรวจสอบกล่องจดหมายและยืนยันอีเมลก่อนเข้าสู่ระบบ");
+        } else {
+          setGlobalError(preCheckData.message || "ชื่อผู้ใช้งาน, อีเมล หรือ รหัสผ่านไม่ถูกต้อง");
+        }
+        setFieldErrors({ identifier: " ", password: " " });
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Pre-check passed — now sign in via next-auth
       const res = await signIn("credentials", {
         redirect: false,
         identifier: formData.identifier,
@@ -79,14 +103,14 @@ export default function LoginPage() {
     <div className="min-h-screen w-full flex bg-white dark:bg-[#050505] transition-colors duration-500 overflow-hidden relative">
       
       {/* Decorative Blob absolute to screen */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[#10d97e]/20 blur-[120px] pointer-events-none md:hidden"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] pointer-events-none md:hidden" style={{ backgroundColor: 'rgba(16, 217, 126, 0.2)' }}></div>
 
       {/* Left Panel: Visual/Branding (Hidden on Mobile) */}
       <div className="hidden lg:flex w-[45%] relative items-center justify-center bg-black overflow-hidden">
         {/* Animated Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0c10] via-[#0f1a15] to-[#0a0c10] z-0"></div>
-        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-[#10d97e]/20 rounded-full blur-[100px] animate-pulse relative z-0"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-[#0ea865]/10 rounded-full blur-[80px] animate-pulse delay-1000 relative z-0"></div>
+        <div className="absolute inset-0 z-0" style={{ backgroundImage: 'linear-gradient(to bottom right, #0a0c10, #0f1a15, #0a0c10)' }}></div>
+        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] rounded-full blur-[100px] animate-pulse z-0" style={{ backgroundColor: 'rgba(16, 217, 126, 0.2)' }}></div>
+        <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] rounded-full blur-[80px] animate-pulse delay-1000 z-0" style={{ backgroundColor: 'rgba(14, 168, 101, 0.1)' }}></div>
         
         {/* Abstract Grid Overlay */}
         <div 
@@ -121,7 +145,7 @@ export default function LoginPage() {
             <div className="flex gap-1 mb-3">
               {[1,2,3,4,5].map(i => <div key={i} className="text-[#10d97e]">★</div>)}
             </div>
-            <p className="text-gray-300 italic text-sm mb-4">"The fastest and most reliable way to host my servers for friends without exposing my IP address."</p>
+            <p className="text-gray-300 italic text-sm mb-4">&quot;The fastest and most reliable way to host my servers for friends without exposing my IP address.&quot;</p>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-xs font-bold">A</div>
               <div className="text-xs">
@@ -142,7 +166,7 @@ export default function LoginPage() {
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className="absolute top-6 right-6 p-2.5 rounded-xl border border-gray-200 dark:border-[#1e2330] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#111318] transition-all bg-white/50 dark:bg-[#0a0c10]/50 backdrop-blur-md shadow-sm"
         >
-          {mounted ? (theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />) : <Sun size={18} className="opacity-0" />}
+          {hydrated ? (theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />) : <Sun size={18} className="opacity-0" />}
         </button>
 
         <div className="w-full max-w-[420px] animate-fade-in">
@@ -223,6 +247,17 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+              <div className="pt-2 flex justify-center">
+                <Turnstile
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  options={{ theme: theme === "dark" ? "dark" : "light" }}
+                  onSuccess={(token) => setFormData({ ...formData, turnstileToken: token })}
+                  onError={() => setGlobalError("ระบบตรวจสอบบอทขัดข้อง กรุณารีเฟรชหน้าเว็บ")}
+                />
+              </div>
+            )}
 
             <div className="pt-4">
               <button

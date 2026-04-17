@@ -1,52 +1,84 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
-import { X, Copy, ShieldCheck, Trash2, Calendar, HardDrive, Globe, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
-import toast from "react-hot-toast";
+import React, { useEffect, useState } from "react";
+import { X, Copy, ShieldCheck, Trash2, Calendar, HardDrive, Globe, RefreshCw } from "lucide-react";
 import TunnelAnalyticsChart from "./TunnelAnalyticsChart";
 import TunnelTeamManager from "./TunnelTeamManager";
 
-function StatusBadge({ status }) {
-  const cfg = {
-    active: { base: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-[#10d97e]", dot: "bg-emerald-500 dark:bg-[#10d97e]", label: "ONLINE" },
-    inactive: { base: "bg-gray-100 dark:bg-[#1e2330] text-gray-500 dark:text-[#8892a4]", dot: "bg-gray-400 dark:bg-[#4a5568]", label: "OFFLINE" },
-    suspended: { base: "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-[#ff4d4d]", dot: "bg-red-500 dark:bg-[#ff4d4d]", label: "SUSPENDED" },
-  }[status] || { base: "bg-gray-100 dark:bg-[#1e2330] text-gray-500", dot: "bg-gray-400", label: status?.toUpperCase() };
+function StatusBadge({ status, connectionInfo }) {
+  if (status === "suspended") {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold tracking-wider bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-[#ff4d4d]">
+        <span className="w-2 h-2 rounded-full bg-red-500 dark:bg-[#ff4d4d]" />
+        SUSPENDED
+      </span>
+    );
+  }
+
+  if (connectionInfo === undefined) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold tracking-wider bg-blue-50 dark:bg-[#1e2330] text-blue-500 dark:text-[#8892a4]">
+        <span className="w-2 h-2 rounded-full bg-blue-400 dark:bg-[#4a5568] animate-pulse" />
+        CHECKING...
+      </span>
+    );
+  }
+
+  if (!connectionInfo?.connected) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold tracking-wider bg-gray-100 dark:bg-[#1e2330] text-gray-500 dark:text-[#8892a4]">
+        <span className="w-2 h-2 rounded-full bg-gray-400 dark:bg-[#4a5568]" />
+        DISCONNECTED
+      </span>
+    );
+  }
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold tracking-wider ${cfg.base}`}>
-      <span className={`w-2 h-2 rounded-full ${cfg.dot} animate-pulse`} />
-      {cfg.label}
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold tracking-wider bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-[#10d97e]">
+      <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-[#10d97e] animate-pulse" />
+      CONNECTED
     </span>
   );
 }
 
-export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onToggle, onDeleteRequest, onResetRequest }) {
-  const [isMounted, setIsMounted] = useState(false);
+export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onToggle, onDeleteRequest, onResetRequest, connectionInfo }) {
+  const [isMounted, setIsMounted] = useState(isOpen);
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  const lastKeyRef = useRef(null);
+  const [displayKey, setDisplayKey] = useState(apiKey);
 
+  useEffect(() => {
+    if (!apiKey) {
+      return;
+    }
 
+    const syncDisplayKey = requestAnimationFrame(() => {
+      setDisplayKey(apiKey);
+    });
 
-  // Keep a snapshot of the last valid apiKey so we can render during exit animation
-  if (apiKey) {
-    lastKeyRef.current = apiKey;
-  }
-  const displayKey = apiKey || lastKeyRef.current;
+    return () => cancelAnimationFrame(syncDisplayKey);
+  }, [apiKey]);
 
   // Handle mount/unmount timing
   useEffect(() => {
     if (isOpen) {
-      setIsMounted(true);
+      const mountFrame = requestAnimationFrame(() => {
+        setIsMounted(true);
+      });
       document.body.style.overflow = "hidden";
+      return () => cancelAnimationFrame(mountFrame);
     } else {
-      setIsVisible(false);
+      const hideFrame = requestAnimationFrame(() => {
+        setIsVisible(false);
+      });
       document.body.style.overflow = "unset";
       const timer = setTimeout(() => {
         setIsMounted(false);
-        lastKeyRef.current = null; // Clear snapshot after exit animation completes
+        setDisplayKey(null);
       }, 300);
-      return () => clearTimeout(timer);
+      return () => {
+        cancelAnimationFrame(hideFrame);
+        clearTimeout(timer);
+      };
     }
   }, [isOpen]);
 
@@ -65,7 +97,8 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
   // Reset internal state when drawer closes
   useEffect(() => {
     if (!isOpen) {
-      setTimeout(() => setActiveTab("overview"), 300);
+      const timer = setTimeout(() => setActiveTab("overview"), 300);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -96,7 +129,7 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
         <div className="flex items-center justify-between px-6 py-5 bg-white dark:bg-[#111318] border-b border-gray-200 dark:border-[#1e2330]">
           <div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-[#e8ecf4] mb-1">{displayKey.name}</h2>
-            <StatusBadge status={displayKey.status} />
+            <StatusBadge status={displayKey.status} connectionInfo={connectionInfo} />
           </div>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1e2330] rounded-xl transition-colors">
             <X size={24} />
@@ -138,9 +171,11 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
                 <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
                   <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-3">ที่อยู่สำหรับเชื่อมต่อ</div>
                   <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#0a0c0f] p-3 rounded-xl border border-gray-100 dark:border-[#1e2330]">
-                    <code className="font-mono text-[14px] text-[#10d97e] flex-1 break-all select-all">{displayKey.subdomain || "mineway.cloud"}:{displayKey.assignedPort}</code>
+                    <code className="font-mono text-[14px] text-[#10d97e] flex-1 break-all select-all">
+                      {displayKey.subdomain || "mineway.cloud"}{!displayKey.isCustomPort && `:${displayKey.assignedPort}`}
+                    </code>
                     <button
-                      onClick={() => onCopy(`${displayKey.subdomain || "mineway.cloud"}:${displayKey.assignedPort}`)}
+                      onClick={() => onCopy(`${displayKey.subdomain || "mineway.cloud"}${!displayKey.isCustomPort ? `:${displayKey.assignedPort}` : ''}`)}
                       className="p-2 text-gray-500 dark:text-[#8892a4] bg-white dark:bg-[#111318] hover:text-[#10d97e] dark:hover:text-[#10d97e] hover:shadow-sm border border-gray-200 dark:border-[#1e2330] rounded-lg transition-all"
                       title="คัดลอกที่อยู่"
                     >

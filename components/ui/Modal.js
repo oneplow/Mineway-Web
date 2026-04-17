@@ -4,19 +4,27 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export default function Modal({ isOpen, onClose, title, subtitle, children, confirmText, onConfirm, cancelText, isDestructive, isProcessing }) {
-  const [isMounted, setIsMounted] = useState(false);
+  const [isMounted, setIsMounted] = useState(isOpen);
   const [isVisible, setIsVisible] = useState(false);
 
   // Handle mount/unmount timing
   useEffect(() => {
     if (isOpen) {
-      setIsMounted(true);
+      const mountFrame = requestAnimationFrame(() => {
+        setIsMounted(true);
+      });
       document.body.style.overflow = "hidden";
+      return () => cancelAnimationFrame(mountFrame);
     } else {
-      setIsVisible(false);
+      const hideFrame = requestAnimationFrame(() => {
+        setIsVisible(false);
+      });
       document.body.style.overflow = "unset";
       const timer = setTimeout(() => setIsMounted(false), 300);
-      return () => clearTimeout(timer);
+      return () => {
+        cancelAnimationFrame(hideFrame);
+        clearTimeout(timer);
+      };
     }
   }, [isOpen]);
 
@@ -99,4 +107,3 @@ export default function Modal({ isOpen, onClose, title, subtitle, children, conf
     document.body
   );
 }
-

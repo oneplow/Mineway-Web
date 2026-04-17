@@ -19,7 +19,7 @@ export default function PlanClientTable({ initialPlans }) {
     maxPlayers: 0,
     maxKeys: 1,
     maxNodes: 1,
-    features: "Premium Support, DDOS Protection, Low Latency",
+    features: "Premium Support, DDOS Protection, Expandable API Slots",
     isPopular: false,
     isActive: true
   };
@@ -174,7 +174,7 @@ export default function PlanClientTable({ initialPlans }) {
                   <Users size={16} className="text-emerald-400 mr-3 shrink-0" /> <span className="font-bold text-white mr-1">{p.maxPlayers === 0 ? "Unlimited" : p.maxPlayers}</span> Max Players
                 </div>
                 <div className="flex items-center text-[13px] text-gray-300 bg-gray-900/40 p-2.5 rounded-xl border border-gray-800">
-                  <KeyRound size={16} className="text-emerald-400 mr-3 shrink-0" /> <span className="font-bold text-white mr-1">{p.maxKeys}</span> Dedicated Ports
+                  <KeyRound size={16} className="text-emerald-400 mr-3 shrink-0" /> <span className="font-bold text-white mr-1">{p.maxKeys}</span> API Keys (Base Limit)
                 </div>
                 <div className="flex items-center text-[13px] text-gray-300 bg-gray-900/40 p-2.5 rounded-xl border border-gray-800">
                   <Server size={16} className="text-emerald-400 mr-3 shrink-0" /> <span className="font-bold text-white mr-1">{p.maxNodes}</span> Global Nodes

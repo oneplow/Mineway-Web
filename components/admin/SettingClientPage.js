@@ -27,11 +27,18 @@ const SETTING_GROUPS = [
     keys: ["discordUrl", "contactEmail"],
   },
   {
+    label: "Payment",
+    description: "การตั้งค่าระบบรับชำระเงินและ PromptPay",
+    icon: CreditCard,
+    color: "sky",
+    keys: ["promptpay_number", "promptpay_name", "truemoney_phone"],
+  },
+  {
     label: "Pricing & Logic",
     description: "ค่าใช้จ่ายและตรรกะการทำงานของระบบ",
     icon: CreditCard,
     color: "violet",
-    keys: ["customPortPrice", "defaultTunnelExpiryDays"],
+    keys: ["customPortPrice", "defaultTunnelExpiryDays", "extraKeyPrice"],
   },
   {
     label: "Maintenance",
@@ -88,6 +95,15 @@ const colorMap = {
     hintBg: "bg-rose-500/5",
     hintBorder: "border-rose-500/10",
   },
+  sky: {
+    bg: "bg-sky-500/10",
+    border: "border-sky-500/20",
+    icon: "text-sky-400",
+    glow: "bg-sky-500/10",
+    hint: "text-sky-500/80",
+    hintBg: "bg-sky-500/5",
+    hintBorder: "border-sky-500/10",
+  },
 };
 
 const HINTS = {
@@ -103,6 +119,9 @@ const HINTS = {
   defaultTunnelExpiryDays: "จำนวนวันก่อนที่ Tunnel จะหมดอายุนับจากวันสร้าง",
   maintenanceMode: "ใส่ 'true' เพื่อเปิดโหมดปิดปรับปรุง หรือ 'false' เพื่อปิด",
   maintenanceMessage: "ข้อความที่จะแสดงให้ผู้ใช้เห็นขณะระบบปิดปรับปรุง",
+  promptpay_number: "เบอร์โทรหรือเลขบัตรประชาชนที่ผูกกับ PromptPay สำหรับรับเงิน",
+  promptpay_name: "ชื่อบัญชีที่จะแสดงให้ผู้ใช้เห็น เช่น 'นาย สมชาย ใจดี'",
+  truemoney_phone: "เบอร์ทรูมันนี่สำหรับรับเงินซองอั่งเปา",
 };
 
 export default function SettingClientPage({ initialSettings }) {
@@ -123,7 +142,12 @@ export default function SettingClientPage({ initialSettings }) {
       if (res.ok) {
         toast.success("บันทึกการตั้งค่าสำเร็จ");
         const updated = await res.json();
-        setSettings(settings.map((s) => (s.key === key ? updated : s)));
+        const exists = settings.some((s) => s.key === key);
+        if (exists) {
+          setSettings(settings.map((s) => (s.key === key ? updated : s)));
+        } else {
+          setSettings([...settings, updated]);
+        }
       } else {
         const data = await res.json();
         toast.error(data.error || "เกิดข้อผิดพลาดในการบันทึก");
@@ -136,7 +160,12 @@ export default function SettingClientPage({ initialSettings }) {
   };
 
   const handleChange = (key, value) => {
-    setSettings(settings.map((s) => (s.key === key ? { ...s, value } : s)));
+    const exists = settings.some((s) => s.key === key);
+    if (exists) {
+      setSettings(settings.map((s) => (s.key === key ? { ...s, value } : s)));
+    } else {
+      setSettings([...settings, { key, value }]);
+    }
   };
 
   const isLongText = (key) => ["siteDescription", "maintenanceMessage", "dashboardAnnouncement"].includes(key);
@@ -157,7 +186,7 @@ export default function SettingClientPage({ initialSettings }) {
       {SETTING_GROUPS.map((group) => {
         const colors = colorMap[group.color];
         const GroupIcon = group.icon;
-        const groupSettings = group.keys.map((k) => getSettingByKey(k)).filter(Boolean);
+        const groupSettings = group.keys.map((k) => getSettingByKey(k) || { key: k, value: "" });
 
         if (groupSettings.length === 0) return null;
 

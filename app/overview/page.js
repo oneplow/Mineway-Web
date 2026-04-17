@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useUser } from "@/components/UserProvider";
-import { Key, Activity, Copy, Plus, Globe, ShieldCheck, ChevronDown, CheckCircle2, AlertCircle, Trash2, RefreshCw, Server, Lock, Users } from "lucide-react";
+import { Key, Activity, Copy, Plus, Globe, ShieldCheck, ChevronDown, CheckCircle2, AlertCircle, Trash2, RefreshCw, Server, Lock, Users, ShoppingCart } from "lucide-react";
 import { REGIONS } from "@/lib/constants";
 import toast from "react-hot-toast";
 import PageLoader from "@/components/ui/PageLoader";
@@ -9,18 +9,42 @@ import Modal from "@/components/ui/Modal";
 import KeyDetailsDrawer from "@/components/ui/KeyDetailsDrawer";
 import { useRouter } from "next/navigation";
 import { useSettings } from "@/components/SettingsProvider";
+import { useSession, signOut } from "next-auth/react";
 
-function StatusBadge({ status }) {
-  const cfg = {
-    active: { base: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-[#10d97e]", dot: "bg-emerald-500 dark:bg-[#10d97e]", label: "ONLINE" },
-    inactive: { base: "bg-gray-100 dark:bg-[#1e2330] text-gray-500 dark:text-[#8892a4]", dot: "bg-gray-400 dark:bg-[#4a5568]", label: "OFFLINE" },
-    suspended: { base: "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-[#ff4d4d]", dot: "bg-red-500 dark:bg-[#ff4d4d]", label: "SUSPENDED" },
-  }[status] || { base: "bg-gray-100 dark:bg-[#1e2330] text-gray-500", dot: "bg-gray-400", label: status?.toUpperCase() };
+function StatusBadge({ status, connectionInfo }) {
+  if (status === "suspended") {
+    return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-[#ff4d4d]"><span className="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-[#ff4d4d]" />SUSPENDED</span>;
+  }
+
+  if (connectionInfo === undefined) {
+    return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider bg-blue-50 dark:bg-[#1e2330] text-blue-500 dark:text-[#8892a4]"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 dark:bg-[#4a5568] animate-pulse" />CHECKING...</span>;
+  }
+
+  if (!connectionInfo?.connected) {
+    return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider bg-gray-100 dark:bg-[#1e2330] text-gray-500 dark:text-[#8892a4]"><span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-[#4a5568]" />DISCONNECTED</span>;
+  }
+
+  return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-[#10d97e]"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-[#10d97e] animate-pulse" />CONNECTED</span>;
+}
+
+function PingBadge({ ping }) {
+  if (ping === undefined) return <span className="text-[10px] text-gray-500 min-w-[50px] text-right">pinging...</span>;
+  if (ping === -1) return <span className="text-[10px] text-red-500 font-bold min-w-[50px] text-right">Disconnected</span>;
+  
+  let colorClass = "text-emerald-500";
+  let dotClass = "bg-emerald-500";
+  if (ping > 150) {
+    colorClass = "text-red-500";
+    dotClass = "bg-red-500";
+  } else if (ping > 50) {
+    colorClass = "text-amber-500";
+    dotClass = "bg-amber-500";
+  }
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider ${cfg.base}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
+    <span className={`flex items-center justify-end gap-1 text-[11px] font-bold ${colorClass} min-w-[50px]`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dotClass} animate-pulse`} />
+      {ping}ms
     </span>
   );
 }
@@ -53,13 +77,58 @@ export default function OverviewPage() {
   const [regionDropdownOpen, setRegionDropdownOpen] = useState(false);
   const [domainDropdownOpen, setDomainDropdownOpen] = useState(false);
 
+  // Ping Measurement State
+  const [pingResults, setPingResults] = useState({});
+  const [isPinging, setIsPinging] = useState(false);
+
+  // Connection Status State (from tunnel server)
+  const [connectionStatus, setConnectionStatus] = useState({});
+
+  const measurePings = async (domainsToPing) => {
+    if (!domainsToPing || domainsToPing.length === 0) return;
+    setIsPinging(true);
+    const results = { ...pingResults };
+    
+    // We will ping concurrently to save time
+    const pingPromises = domainsToPing.map(async (d) => {
+      const start = performance.now();
+      try {
+        // Use no-cors to prevent CORS issues, signal for timeout
+        const res = await fetch(`https://tunnel.${d.domain}/health`, {
+          mode: 'no-cors',
+          cache: 'no-store',
+          signal: AbortSignal.timeout(3000)
+        });
+        results[d.id] = Math.round(performance.now() - start);
+      } catch (err) {
+        results[d.id] = -1; // -1 indicates offline/timeout
+      }
+    });
+
+    await Promise.all(pingPromises);
+    setPingResults(results);
+    setIsPinging(false);
+  };
+
+  // Buy extra key slot
+  const [buySlotModalOpen, setBuySlotModalOpen] = useState(false);
+  const [isBuyingSlot, setIsBuyingSlot] = useState(false);
+  const extraKeyPrice = parseInt(settings?.extraKeyPrice) || 200;
+
   const fetchData = async () => {
+    let shouldRedirect = false;
     try {
       const [userRes, keysRes, domainsRes] = await Promise.all([
-        fetch("/api/user"),
-        fetch("/api/keys"),
-        fetch("/api/domains")
+        fetch("/api/user?t=" + Date.now(), { cache: "no-store" }),
+        fetch("/api/keys?t=" + Date.now(), { cache: "no-store" }),
+        fetch("/api/domains?t=" + Date.now(), { cache: "no-store" })
       ]);
+
+      if (userRes.status === 401 || userRes.status === 404) {
+        shouldRedirect = true;
+        await signOut({ callbackUrl: "/auth/login", redirect: true });
+        return;
+      }
 
       if (userRes.ok) {
         const u = await userRes.json();
@@ -82,7 +151,19 @@ export default function OverviewPage() {
       console.error(err);
       toast.error("ดึงข้อมูลหลักล้มเหลว");
     } finally {
-      setLoading(false);
+      if (!shouldRedirect) setLoading(false);
+    }
+  };
+
+  const fetchConnectionStatus = async () => {
+    try {
+      const res = await fetch("/api/keys/connection-status?t=" + Date.now(), { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setConnectionStatus(data.connections || {});
+      }
+    } catch (err) {
+      console.error("Failed to fetch connection status:", err);
     }
   };
 
@@ -90,10 +171,22 @@ export default function OverviewPage() {
     fetchData();
   }, []);
 
+  // Poll connection status every 15 seconds
+  useEffect(() => {
+    if (!loading && keys.length > 0) {
+      fetchConnectionStatus();
+      const interval = setInterval(fetchConnectionStatus, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [loading, keys.length]);
+
   const attemptCreate = () => {
     if (!user?.plan) {
       setNoPlanModalOpen(true);
       return;
+    }
+    if (!showCreate) {
+      measurePings(domains); // Start pinging when modal opens
     }
     setShowCreate(!showCreate);
   };
@@ -119,6 +212,7 @@ export default function OverviewPage() {
         setShowCreate(false);
         toast.success("สร้าง API key สำเร็จ!");
         fetchData(); // Refresh list & stats
+        refreshUser(); // sync global user context (navbar points)
       }
     } catch (err) {
       toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
@@ -235,15 +329,37 @@ export default function OverviewPage() {
     }
   };
 
+  const handleBuySlot = async () => {
+    setIsBuyingSlot(true);
+    try {
+      const res = await fetch("/api/keys/buy-slot", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`ซื้อช่อง Key เพิ่มสำเร็จ! (เหลือ ${data.points} Points)`);
+        setBuySlotModalOpen(false);
+        fetchData();
+        refreshUser();
+      } else {
+        toast.error(data.error || "ซื้อช่องเพิ่มไม่สำเร็จ");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("เครือข่ายขัดข้อง กรุณาลองใหม่");
+    } finally {
+      setIsBuyingSlot(false);
+    }
+  };
+
   if (loading) return <PageLoader />;
 
-  const atLimit = keys.length >= (user?.stats?.maxKeys || user?.plan?.maxKeys || 1);
+  const totalMaxKeys = user?.stats?.maxKeys || (user?.plan?.maxKeys || 1) + (user?.extraKeys || 0);
+  const atLimit = keys.length >= totalMaxKeys;
   const domainPreview = `${form.name.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}.${domains.find(d => d.id === form.domainId)?.domain || '???'}`;
 
   return (
     <div className="w-full">
 
-      <div className="pt-24 pb-12 px-6 md:px-12 max-w-[1100px] mx-auto space-y-8 animate-fade-in">
+      <div className="pt-8 md:pt-12 pb-12 px-6 md:px-12 max-w-[1100px] mx-auto space-y-8 animate-fade-in">
 
         {/* Dashboard Announcement Banner */}
         {settings.dashboardAnnouncement && (
@@ -300,8 +416,18 @@ export default function OverviewPage() {
             <p className="text-gray-500 dark:text-[#8892a4] font-bold uppercase text-xs tracking-wider mb-2">Active Keys</p>
             <div className="flex items-baseline mt-4 font-syne">
               <h2 className="text-5xl font-extrabold mr-2 text-gray-900 dark:text-[#e8ecf4]">{user?.stats?.totalKeys || 0}</h2>
-              <span className="text-gray-400 dark:text-[#4a5568] font-bold text-xl">/ {user?.plan?.maxKeys || 0}</span>
+              <span className="text-gray-400 dark:text-[#4a5568] font-bold text-xl">/ {totalMaxKeys}</span>
             </div>
+            {(user?.extraKeys || 0) > 0 && (
+              <p className="text-[11px] text-blue-400 mt-1 font-semibold">+{user.extraKeys} ช่องเสริม</p>
+            )}
+            <button
+              onClick={() => setBuySlotModalOpen(true)}
+              className="mt-3 flex items-center gap-1.5 text-[12px] font-bold text-blue-500 hover:text-blue-400 transition-colors group/buy"
+            >
+              <ShoppingCart size={13} className="group-hover/buy:scale-110 transition-transform" />
+              ซื้อช่องเพิ่ม ({extraKeyPrice} Points)
+            </button>
           </div>
 
           <div className="bg-[#10d97e]/[0.02] dark:bg-[#10d97e]/5 backdrop-blur-xl ring-1 ring-[#10d97e]/30 p-6 rounded-[20px] relative overflow-hidden flex flex-col justify-between group shadow-lg">
@@ -349,16 +475,16 @@ export default function OverviewPage() {
                     return (
                       <tr key={k.id} className="transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" onClick={() => setSelectedKeyForDrawer(k)}>
                         <td className="p-5 font-bold text-gray-900 dark:text-[#e8ecf4]">{k.name}</td>
-                        <td className="p-5">
+                          <td className="p-5">
                           <div className="flex items-center space-x-3 w-fit">
                             <span className="font-mono tracking-wider">
-                              {k.assignedPort ? (
+                              {(k.assignedPort || connectionStatus[k.id]?.assignedPort) ? (
                                 <>
                                   <span className="text-gray-400 dark:text-[#8892a4]">{k.subdomain || "mineway.cloud"}</span>
-                                  <span className="text-[#10d97e]">:{k.assignedPort}</span>
+                                  {!k.isCustomPort && <span className="text-[#10d97e]">:{k.assignedPort || connectionStatus[k.id]?.assignedPort}</span>}
                                 </>
                               ) : (
-                                <span className="text-gray-400 dark:text-[#8892a4]">—</span>
+                                <span className="text-amber-500/70 dark:text-amber-400/60 text-[11px] font-bold">⏳ รอเชื่อมต่อปลั๊กอิน</span>
                               )}
                             </span>
                           </div>
@@ -371,7 +497,7 @@ export default function OverviewPage() {
                         <td className="p-5 font-mono text-[12px]">
                           <span className="text-[#10d97e]">{rxGB}</span> <span className="text-gray-300 dark:text-[#4a5568]">/</span> <span className="text-blue-500">{txGB} GB</span>
                         </td>
-                        <td className="p-5"><StatusBadge status={k.status} /></td>
+                        <td className="p-5"><StatusBadge status={k.status} connectionInfo={connectionStatus[k.id]} /></td>
                       </tr>
                     );
                   })}
@@ -395,7 +521,7 @@ export default function OverviewPage() {
                         <tr key={k.id} className="transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" onClick={() => setSelectedKeyForDrawer(k)}>
                           <td className="p-5 font-bold text-gray-900 dark:text-[#e8ecf4]">{k.name}</td>
                           <td className="p-5 text-gray-400">Shared Tunnel</td>
-                          <td className="p-5"><StatusBadge status={k.status} /></td>
+                          <td className="p-5"><StatusBadge status={k.status} connectionInfo={connectionStatus[k.id]} /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -415,6 +541,7 @@ export default function OverviewPage() {
         onToggle={handleToggle}
         onDeleteRequest={confirmDelete}
         onResetRequest={confirmReset}
+        connectionInfo={selectedKeyForDrawer ? connectionStatus[selectedKeyForDrawer.id] : undefined}
       />
 
       <Modal
@@ -463,10 +590,11 @@ export default function OverviewPage() {
         onClose={() => setNoPlanModalOpen(false)}
         title="จำเป็นต้องมีแพ็กเกจ"
         subtitle="ระบบตรวจพบว่าคุณไม่มีแพ็กเกจรองรับ"
-        confirmText="ดูแพ็กเกจ"
+        confirmText="ดูแพ็กเกจ (มีแพ็กเกจฟรี!)"
         onConfirm={() => router.push("/plans")}
       >
         <p>คุณยังไม่มีแพ็กเกจเน็ตเวิร์คที่ใช้งานได้ กรุณา <strong>เลือกแพ็กเกจขั้นต่ำ 1 แผน</strong> ก่อนเพื่อรับสิทธิ์ในการสร้าง API Key และใช้งาน Tunnel</p>
+        <p className="mt-2 text-[12px] text-emerald-500 font-bold">💡 เรามีแพ็กเกจ Free Trial ให้ทดลองใช้ฟรีโดยไม่ต้องเติมเงิน!</p>
       </Modal>
 
       <Modal
@@ -502,6 +630,7 @@ export default function OverviewPage() {
                   {domains.find(d => d.id === form.domainId)?.isDefault && (
                     <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-md">Default</span>
                   )}
+                  <PingBadge ping={pingResults[form.domainId]} />
                 </span>
                 <ChevronDown size={18} className={`text-gray-500 transition-transform ${domainDropdownOpen ? 'rotate-180' : ''}`} />
               </div>
@@ -522,7 +651,10 @@ export default function OverviewPage() {
                           {d.isDefault && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-md">Default</span>}
                           {d.description && <span className="text-[11px] text-gray-500 ml-1">— {d.description}</span>}
                         </span>
-                        {form.domainId === d.id && <CheckCircle2 size={16} className="text-[#10d97e]" />}
+                        <div className="flex items-center gap-3">
+                          <PingBadge ping={pingResults[d.id]} />
+                          {form.domainId === d.id && <CheckCircle2 size={16} className="text-[#10d97e]" />}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -620,6 +752,43 @@ export default function OverviewPage() {
           <div className="flex items-center bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl p-3 shadow-inner">
             <code className="font-mono text-[15px] font-bold text-gray-900 dark:text-emerald-400 flex-1 break-all select-all">{newKeyValue}</code>
           </div>
+        </div>
+      </Modal>
+
+      {/* Buy Extra Key Slot Modal */}
+      <Modal
+        isOpen={buySlotModalOpen}
+        onClose={() => setBuySlotModalOpen(false)}
+        title={
+          <div className="flex items-center gap-2 text-blue-500">
+            <ShoppingCart size={22} />
+            <span>ซื้อช่อง Key เพิ่ม</span>
+          </div>
+        }
+        confirmText={isBuyingSlot ? "กำลังดำเนินการ..." : `ยืนยัน (${extraKeyPrice} Points)`}
+        onConfirm={handleBuySlot}
+        cancelText="ยกเลิก"
+        isLoading={isBuyingSlot}
+      >
+        <div className="space-y-4">
+          <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl p-4">
+            <p className="text-sm text-blue-700 dark:text-blue-400 font-semibold">ซื้อช่องสร้าง API Key เพิ่มอีก 1 ช่อง</p>
+            <p className="text-xs text-blue-600/70 dark:text-blue-400/60 mt-1">ช่องนี้จะเพิ่มถาวรสำหรับบัญชีของคุณ ไม่มีวันหมดอายุ</p>
+          </div>
+          <div className="flex justify-between items-center bg-gray-50 dark:bg-[#161a22] rounded-xl px-4 py-3 border border-gray-200 dark:border-gray-800">
+            <span className="text-sm font-medium text-gray-600 dark:text-[#8892a4]">ราคา</span>
+            <span className="font-syne font-bold text-lg text-gray-900 dark:text-[#e8ecf4]">{extraKeyPrice} Points</span>
+          </div>
+          <div className="flex justify-between items-center bg-gray-50 dark:bg-[#161a22] rounded-xl px-4 py-3 border border-gray-200 dark:border-gray-800">
+            <span className="text-sm font-medium text-gray-600 dark:text-[#8892a4]">พอยท์คงเหลือ</span>
+            <span className={`font-syne font-bold text-lg ${(user?.points || 0) >= extraKeyPrice ? 'text-emerald-500' : 'text-red-500'}`}>{user?.points || 0} Points</span>
+          </div>
+          {(user?.points || 0) < extraKeyPrice && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl text-red-700 dark:text-red-400 text-[13px] font-semibold">
+              <AlertCircle size={16} className="shrink-0" />
+              พอยท์ไม่เพียงพอ กรุณาเติมพอยท์ก่อน
+            </div>
+          )}
         </div>
       </Modal>
     </div>

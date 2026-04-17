@@ -7,6 +7,7 @@ import { Mail, Lock, User, ArrowRight, Sun, Moon, Pickaxe, AtSign, Sparkles } fr
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useSettings } from "@/components/SettingsProvider";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export default function RegisterPage() {
   const [globalError, setGlobalError] = useState("");
@@ -26,6 +27,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirm: "",
+    turnstileToken: "",
   });
 
   const handleChange = (e) => {
@@ -67,7 +69,8 @@ export default function RegisterPage() {
         body: JSON.stringify({
           username: formData.username,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          turnstileToken: formData.turnstileToken
         }),
       });
 
@@ -103,13 +106,13 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen w-full flex lg:flex-row-reverse bg-white dark:bg-[#050505] transition-colors duration-500 overflow-hidden relative">
-      
+
       {/* Decorative Blob absolute to screen */}
-      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[120px] pointer-events-none md:hidden"></div>
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] pointer-events-none md:hidden" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)' }}></div>
 
       {/* Right Panel: Form */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 relative z-10">
-        
+
         {/* Theme Toggle */}
         <button
           type="button"
@@ -147,7 +150,7 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={(e) => { e.preventDefault(); handleRegisterSubmit(); }} className="space-y-4" noValidate>
-            
+
             {/* Input Group: Username */}
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-gray-700 dark:text-[#a0abc0] ml-1 flex items-center justify-between">
@@ -165,8 +168,8 @@ export default function RegisterPage() {
                   value={formData.username}
                   onChange={handleChange}
                   className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-white dark:bg-[#0a0c10] border shadow-sm focus:outline-none transition-all text-[15px] font-medium text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#4a5568] ${fieldErrors.username
-                      ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
-                      : "border-gray-200 dark:border-[#1e2330] focus:border-[#10d97e] focus:ring-4 focus:ring-[#10d97e]/10 hover:border-gray-300 dark:hover:border-gray-700"
+                    ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                    : "border-gray-200 dark:border-[#1e2330] focus:border-[#10d97e] focus:ring-4 focus:ring-[#10d97e]/10 hover:border-gray-300 dark:hover:border-gray-700"
                     }`}
                 />
               </div>
@@ -189,8 +192,8 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={handleChange}
                   className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-white dark:bg-[#0a0c10] border shadow-sm focus:outline-none transition-all text-[15px] font-medium text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#4a5568] ${fieldErrors.email
-                      ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
-                      : "border-gray-200 dark:border-[#1e2330] focus:border-[#10d97e] focus:ring-4 focus:ring-[#10d97e]/10 hover:border-gray-300 dark:hover:border-gray-700"
+                    ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                    : "border-gray-200 dark:border-[#1e2330] focus:border-[#10d97e] focus:ring-4 focus:ring-[#10d97e]/10 hover:border-gray-300 dark:hover:border-gray-700"
                     }`}
                 />
               </div>
@@ -213,8 +216,8 @@ export default function RegisterPage() {
                     value={formData.password}
                     onChange={handleChange}
                     className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-white dark:bg-[#0a0c10] border shadow-sm focus:outline-none transition-all text-[15px] font-medium text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#4a5568] ${fieldErrors.password
-                        ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
-                        : "border-gray-200 dark:border-[#1e2330] focus:border-[#10d97e] focus:ring-4 focus:ring-[#10d97e]/10 hover:border-gray-300 dark:hover:border-gray-700"
+                      ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                      : "border-gray-200 dark:border-[#1e2330] focus:border-[#10d97e] focus:ring-4 focus:ring-[#10d97e]/10 hover:border-gray-300 dark:hover:border-gray-700"
                       }`}
                   />
                 </div>
@@ -237,14 +240,25 @@ export default function RegisterPage() {
                     value={formData.confirm}
                     onChange={handleChange}
                     className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-white dark:bg-[#0a0c10] border shadow-sm focus:outline-none transition-all text-[15px] font-medium text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#4a5568] ${fieldErrors.confirm
-                        ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
-                        : "border-gray-200 dark:border-[#1e2330] focus:border-[#10d97e] focus:ring-4 focus:ring-[#10d97e]/10 hover:border-gray-300 dark:hover:border-gray-700"
+                      ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                      : "border-gray-200 dark:border-[#1e2330] focus:border-[#10d97e] focus:ring-4 focus:ring-[#10d97e]/10 hover:border-gray-300 dark:hover:border-gray-700"
                       }`}
                   />
                 </div>
                 {fieldErrors.confirm && fieldErrors.confirm !== " " && <p className="text-xs text-red-500 font-medium ml-1 mt-1 leading-tight">{fieldErrors.confirm}</p>}
               </div>
             </div>
+
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+              <div className="pt-2 sm:col-span-2 flex justify-center">
+                <Turnstile
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  options={{ theme: theme === "dark" ? "dark" : "light" }}
+                  onSuccess={(token) => setFormData({ ...formData, turnstileToken: token })}
+                  onError={() => setGlobalError("ระบบตรวจสอบบอทขัดข้อง กรุณารีเฟรชหน้าเว็บ")}
+                />
+              </div>
+            )}
 
             <div className="pt-4">
               <button
@@ -254,7 +268,7 @@ export default function RegisterPage() {
               >
                 {/* Button Hover Effect Layer */}
                 <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-[#10d97e] to-[#0ea865] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                
+
                 <span className="relative flex items-center justify-center gap-2">
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-white/30 dark:border-current/30 border-t-white dark:border-t-current rounded-full animate-spin"></div>
@@ -296,15 +310,15 @@ export default function RegisterPage() {
       </div>
 
       {/* Left Panel: Visual/Branding (Hidden on Mobile) */}
-      <div className="hidden lg:flex w-[45%] relative items-center justify-center bg-[#0a0c10] overflow-hidden">
+      <div className="hidden lg:flex w-[45%] relative items-center justify-center bg-black overflow-hidden">
         {/* Animated Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-[#0a0c10] via-[#0b101f] to-[#0a0c10] z-0"></div>
-        <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] animate-pulse relative z-0"></div>
-        <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-purple-500/10 rounded-full blur-[80px] animate-pulse delay-1000 relative z-0"></div>
-        
+        <div className="absolute inset-0 z-0" style={{ backgroundImage: 'linear-gradient(to bottom right, #0a0c10, #0f1a15, #0a0c10)' }}></div>
+        <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] rounded-full blur-[100px] animate-pulse z-0" style={{ backgroundColor: 'rgba(16, 217, 126, 0.2)' }}></div>
+        <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] rounded-full blur-[80px] animate-pulse delay-1000 z-0" style={{ backgroundColor: 'rgba(14, 168, 101, 0.1)' }}></div>
+
         {/* Abstract Grid Overlay */}
-        <div 
-          className="absolute inset-0 z-0 opacity-10" 
+        <div
+          className="absolute inset-0 z-0 opacity-10"
           style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}
         ></div>
 
@@ -315,15 +329,15 @@ export default function RegisterPage() {
             </div>
             <span className="font-syne font-extrabold text-2xl tracking-tight">{settings.siteName}</span>
           </Link>
-          
+
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 w-fit mb-6 backdrop-blur-md">
-            <Sparkles size={14} className="text-blue-400" />
+            <Sparkles size={14} className="text-[#10d97e]" />
             <span className="text-xs font-semibold tracking-wider uppercase text-gray-300">Join the Community</span>
           </div>
 
           <h1 className="font-syne text-5xl font-bold leading-[1.1] mb-6 tracking-tight">
-            Start Hosting <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">In Seconds.</span>
+            Start Hosting <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#10d97e] to-[#38ef7d]">In Seconds.</span>
           </h1>
           <p className="text-lg text-gray-400 leading-relaxed max-w-md font-medium">
             Join thousands of players hosting their servers to the world without complicated network configs.
@@ -331,14 +345,14 @@ export default function RegisterPage() {
 
           <div className="mt-16 grid grid-cols-2 gap-6">
             <div className="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-5">
-              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-[#10d97e] mb-4" style={{ backgroundColor: 'rgba(16, 217, 126, 0.2)' }}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </div>
               <h3 className="text-white font-bold mb-1">Instant Setup</h3>
               <p className="text-gray-400 text-xs leading-relaxed">Get your domain and port instantly without touching your router.</p>
             </div>
             <div className="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-5">
-              <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-[#10d97e] mb-4" style={{ backgroundColor: 'rgba(14, 168, 101, 0.2)' }}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
               </div>
               <h3 className="text-white font-bold mb-1">DDoS Protected</h3>

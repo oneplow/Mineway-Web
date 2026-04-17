@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
-  allowedDevOrigins: ['192.168.2.54', 'localhost', 'keyauth.lexten.store', 'mineways.lexten.store'],
+  allowedDevOrigins: ['192.168.2.54', 'localhost', 'mineway.cloud'],
   images: {
     remotePatterns: [
       {
