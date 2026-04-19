@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useUser } from "@/components/UserProvider";
 import { Key, Activity, Copy, Plus, Globe, ShieldCheck, ChevronDown, CheckCircle2, AlertCircle, Trash2, RefreshCw, Server, Lock, Users, ShoppingCart } from "lucide-react";
 import { REGIONS } from "@/lib/constants";
@@ -30,7 +30,7 @@ function StatusBadge({ status, connectionInfo }) {
 function PingBadge({ ping }) {
   if (ping === undefined) return <span className="text-[10px] text-gray-500 min-w-[50px] text-right">pinging...</span>;
   if (ping === -1) return <span className="text-[10px] text-red-500 font-bold min-w-[50px] text-right">Disconnected</span>;
-  
+
   let colorClass = "text-emerald-500";
   let dotClass = "bg-emerald-500";
   if (ping > 150) {
@@ -83,23 +83,55 @@ export default function OverviewPage() {
 
   // Connection Status State (from tunnel server)
   const [connectionStatus, setConnectionStatus] = useState({});
+  const prevConnectionStatusRef = useRef(null);
+
+  // Monitor connection status changes to notify user
+  useEffect(() => {
+    if (Object.keys(connectionStatus).length > 0) {
+      if (!prevConnectionStatusRef.current) {
+        prevConnectionStatusRef.current = connectionStatus;
+        return;
+      }
+
+      const prev = prevConnectionStatusRef.current;
+      Object.keys(connectionStatus).forEach(keyId => {
+        const wasConnected = prev[keyId]?.connected;
+        const isConnected = connectionStatus[keyId]?.connected;
+
+        if (!wasConnected && isConnected) {
+          const tunnelName = keys.find(k => k.id === keyId)?.name || sharedKeys.find(k => k.id === keyId)?.name;
+          if (tunnelName) {
+            toast.success(`Tunnel "${tunnelName}" เชื่อมต่อสำเร็จ!`, {
+              icon: '🟢',
+              duration: 5000,
+            });
+          }
+        }
+      });
+
+      prevConnectionStatusRef.current = connectionStatus;
+    }
+  }, [connectionStatus, keys, sharedKeys]);
 
   const measurePings = async (domainsToPing) => {
     if (!domainsToPing || domainsToPing.length === 0) return;
     setIsPinging(true);
     const results = { ...pingResults };
-    
+
     // We will ping concurrently to save time
     const pingPromises = domainsToPing.map(async (d) => {
       const start = performance.now();
       try {
-        // Use no-cors to prevent CORS issues, signal for timeout
-        const res = await fetch(`https://tunnel.${d.domain}/health`, {
-          mode: 'no-cors',
-          cache: 'no-store',
-          signal: AbortSignal.timeout(3000)
-        });
-        results[d.id] = Math.round(performance.now() - start);
+        if (!d.nodeId) {
+          results[d.id] = -1;
+          return;
+        }
+
+        const res = await fetch(`/api/nodes/ping?nodeId=${d.nodeId}`);
+        if (!res.ok) throw new Error("Ping failed");
+
+        const data = await res.json();
+        results[d.id] = data.ping !== undefined ? data.ping : -1;
       } catch (err) {
         results[d.id] = -1; // -1 indicates offline/timeout
       }
@@ -160,7 +192,23 @@ export default function OverviewPage() {
       const res = await fetch("/api/keys/connection-status?t=" + Date.now(), { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setConnectionStatus(data.connections || {});
+        const conns = data.connections || {};
+        setConnectionStatus(conns);
+
+        // Update real-time traffic without full page refresh
+        setKeys(prevKeys => prevKeys.map(k => {
+          if (conns[k.id] && conns[k.id].rxBytes !== undefined) {
+            return { ...k, rxBytes: conns[k.id].rxBytes, txBytes: conns[k.id].txBytes };
+          }
+          return k;
+        }));
+
+        setSharedKeys(prevKeys => prevKeys.map(k => {
+          if (conns[k.id] && conns[k.id].rxBytes !== undefined) {
+            return { ...k, rxBytes: conns[k.id].rxBytes, txBytes: conns[k.id].txBytes };
+          }
+          return k;
+        }));
       }
     } catch (err) {
       console.error("Failed to fetch connection status:", err);
@@ -171,11 +219,11 @@ export default function OverviewPage() {
     fetchData();
   }, []);
 
-  // Poll connection status every 15 seconds
+  // Poll connection status every 5 seconds (fast polling for near real-time notifications)
   useEffect(() => {
     if (!loading && keys.length > 0) {
       fetchConnectionStatus();
-      const interval = setInterval(fetchConnectionStatus, 15000);
+      const interval = setInterval(fetchConnectionStatus, 5000);
       return () => clearInterval(interval);
     }
   }, [loading, keys.length]);
@@ -397,10 +445,11 @@ export default function OverviewPage() {
               <Activity size={48} className="text-[#10d97e]/40" />
             </div>
             <p className="text-gray-500 dark:text-[#8892a4] font-bold uppercase text-xs tracking-wider mb-2">Traffic Used</p>
-            <div className="flex items-baseline mb-4 font-syne">
+            <div className="flex items-baseline mb-1 font-syne">
               <h2 className="text-5xl font-extrabold mr-2 text-gray-900 dark:text-[#e8ecf4]">{user?.stats?.totalTrafficGB || 0}</h2>
               <span className="text-gray-500 font-semibold">GB</span>
             </div>
+            <p className="text-[10.5px] text-gray-400 dark:text-[#4a5568] mb-4">* ระบบจะรีเซ็ตยอดการใช้งานทุกๆ 30 วันนับจากวันที่สร้าง Key</p>
             <div className="w-full bg-gray-100 dark:bg-[#0a0c0f] rounded-full h-2.5 overflow-hidden">
               <div className="bg-[#10d97e] h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(((user?.stats?.totalTrafficGB || 0) / (user?.plan?.bandwidthGB || 1)) * 100, 100)}%` }}></div>
             </div>
@@ -475,7 +524,7 @@ export default function OverviewPage() {
                     return (
                       <tr key={k.id} className="transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" onClick={() => setSelectedKeyForDrawer(k)}>
                         <td className="p-5 font-bold text-gray-900 dark:text-[#e8ecf4]">{k.name}</td>
-                          <td className="p-5">
+                        <td className="p-5">
                           <div className="flex items-center space-x-3 w-fit">
                             <span className="font-mono tracking-wider">
                               {(k.assignedPort || connectionStatus[k.id]?.assignedPort) ? (
@@ -619,7 +668,7 @@ export default function OverviewPage() {
 
           {domains.length > 0 && (
             <div className="relative">
-              <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">โดเมนสำหรับเชื่อมต่อ</label>
+              <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">เลือกจุดเชื่อมต่อ (Region / Node)</label>
               <div
                 onClick={() => setDomainDropdownOpen(!domainDropdownOpen)}
                 className="w-full bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 text-gray-900 dark:text-white text-sm font-bold outline-none cursor-pointer hover:border-emerald-500 dark:hover:border-emerald-500 shadow-inner transition-all flex items-center justify-between"
@@ -627,6 +676,9 @@ export default function OverviewPage() {
                 <span className="flex items-center gap-2">
                   <Globe size={16} className="text-emerald-400" />
                   <span>{domains.find(d => d.id === form.domainId)?.domain || "เลือกโดเมน"}</span>
+                  {domains.find(d => d.id === form.domainId)?.description && (
+                    <span className="text-[10px] bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-md font-bold">{domains.find(d => d.id === form.domainId)?.description}</span>
+                  )}
                   {domains.find(d => d.id === form.domainId)?.isDefault && (
                     <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-md">Default</span>
                   )}
@@ -648,8 +700,8 @@ export default function OverviewPage() {
                         <span className="flex items-center gap-2">
                           <Globe size={14} />
                           <span>{d.domain}</span>
+                          {d.description && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-md font-bold">{d.description}</span>}
                           {d.isDefault && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-md">Default</span>}
-                          {d.description && <span className="text-[11px] text-gray-500 ml-1">— {d.description}</span>}
                         </span>
                         <div className="flex items-center gap-3">
                           <PingBadge ping={pingResults[d.id]} />

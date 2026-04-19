@@ -11,12 +11,16 @@ export async function POST(req) {
     const { planId } = await req.json();
 
     const [user, plan] = await Promise.all([
-      prisma.user.findUnique({ where: { id: session.user.id } }),
+      prisma.user.findUnique({ where: { id: session.user.id }, include: { plan: true } }),
       prisma.plan.findUnique({ where: { id: planId } })
     ]);
 
     if (!user) return NextResponse.json({ error: "User not found in database. Please log out and sign in again." }, { status: 401 });
     if (!plan) return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+    
+    if (user.plan && plan.pricePoints < user.plan.pricePoints) {
+      return NextResponse.json({ error: "ไม่อนุญาตให้ดาวน์เกรดแพ็กเกจ (ไม่สามารถเปลี่ยนไปใช้แพ็กเกจที่ถูกกว่าเดิมได้)" }, { status: 400 });
+    }
     
     if (user.points < plan.pricePoints) {
       return NextResponse.json({ error: "ยอดเงินสะสมไม่เพียงพอ กรุณาเติมเงิน" }, { status: 400 });

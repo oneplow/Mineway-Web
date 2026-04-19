@@ -16,6 +16,7 @@ enum Role {
 
 model User {
   id            String    @id @default(cuid())
+  name          String?
   username      String?   @unique
   email         String?   @unique
   emailVerified DateTime?
@@ -29,7 +30,6 @@ model User {
   accounts      Account[]
   sessions      Session[]
   apiKeys       ApiKey[]
-  collaborations TunnelCollaborator[]
   payments      Payment[]
   redemptionLogs RedemptionLog[]
   createdAt     DateTime  @default(now())
@@ -44,7 +44,6 @@ model Plan {
   bandwidthGB     Int      // bandwidth in GB per month
   maxPlayers      Int      // 0 = unlimited
   maxKeys         Int
-  maxNodes        Int
   features        Json     // list of feature strings
   allowCustomPort Boolean  @default(false)
   isPopular       Boolean  @default(false)
@@ -57,7 +56,8 @@ model Domain {
   id          String   @id @default(cuid())
   domain      String   @unique    // e.g. "lexten.store", "mineway.me"
   description String?             // e.g. "Main Thailand Server"
-  tunnelNode  String?  @default("http://localhost:8765") // e.g. "http://th1.mineway.cloud:8765"
+  nodeId      String?             // New: Relation to physical Node
+  node        Node?      @relation(fields: [nodeId], references: [id])
   cloudflareZoneId String?
   isDefault   Boolean  @default(false)
   isActive    Boolean  @default(true)
@@ -87,7 +87,6 @@ model ApiKey {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   bandwidthLogs BandwidthLog[]
-  collaborators TunnelCollaborator[]
 
   @@unique([subdomain, domainId])  // prevent duplicate subdomains on same domain
 }
@@ -141,16 +140,15 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model TunnelCollaborator {
-  id         String   @id @default(cuid())
-  apiKeyId   String
-  apiKey     ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role       String   @default("viewer") // "viewer" or "manager"
-  createdAt  DateTime @default(now())
-
-  @@unique([apiKeyId, userId])
+model Node {
+  id        String   @id @default(cuid())
+  name      String   // e.g. "TH-1 Bangkok"
+  url       String   @unique // e.g. "http://10.0.0.5:8765"
+  token     String   @unique @default(cuid()) // Secure node token
+  isActive  Boolean  @default(true)
+  domains   Domain[] // Domains that are routed through this Node
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model BandwidthLog {

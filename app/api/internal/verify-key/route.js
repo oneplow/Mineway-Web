@@ -6,10 +6,15 @@ import crypto from "crypto";
 // Protected by x-internal-secret header
 export async function POST(req) {
   try {
-    // Verify internal secret
-    const secret = req.headers.get("x-internal-secret");
-    if (!secret || secret !== process.env.INTERNAL_SECRET) {
-      return NextResponse.json({ valid: false, reason: "unauthorized" }, { status: 401 });
+    // Verify node token
+    const token = req.headers.get("x-node-token");
+    if (!token) {
+      return NextResponse.json({ valid: false, reason: "missing_token" }, { status: 401 });
+    }
+
+    const node = await prisma.node.findUnique({ where: { token } });
+    if (!node || !node.isActive) {
+      return NextResponse.json({ valid: false, reason: "unauthorized_node" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -21,7 +26,7 @@ export async function POST(req) {
 
     const apiKey = await prisma.apiKey.findUnique({
       where: { keyHash: key_hash },
-      include: { user: { include: { plan: true } }, domain: true },
+      include: { user: { include: { plan: true } }, domain: { include: { node: true } } },
     });
 
     if (!apiKey || apiKey.status !== "active") {
@@ -94,6 +99,7 @@ export async function POST(req) {
       assignedPort,
       isCustomPort: apiKey.isCustomPort || false,
       subdomain: fullSubdomain,
+      nodeName: apiKey.domain?.node?.name || "Unknown Node",
       plan: plan?.name ?? "free",
       maxPlayers: plan?.maxPlayers ?? 5,
       bandwidthRemaining: plan

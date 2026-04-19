@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Copy, ShieldCheck, Trash2, Calendar, HardDrive, Globe, RefreshCw } from "lucide-react";
 import TunnelAnalyticsChart from "./TunnelAnalyticsChart";
-import TunnelTeamManager from "./TunnelTeamManager";
+
 
 function StatusBadge({ status, connectionInfo }) {
   if (status === "suspended") {
@@ -244,11 +244,7 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
             </div>
           )}
 
-          {activeTab === 'team' && (
-            <div className="animate-fade-in pt-2">
-              <TunnelTeamManager tunnelId={displayKey.id} />
-            </div>
-          )}
+
         </div>
 
         {/* Footer Actions */}

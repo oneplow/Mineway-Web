@@ -2,27 +2,34 @@ import { auth, prisma } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { findSrvRecord, deleteSrvRecord } from "@/lib/cloudflare";
 
-async function getTunnelUrl(apiKey) {
-  let tunnelUrl = process.env.TUNNEL_SERVER_URL;
-  if (!tunnelUrl && apiKey.domainId) {
-    const domain = await prisma.domain.findUnique({ where: { id: apiKey.domainId } });
-    if (domain) {
-      const tunnelHost = process.env.TUNNEL_NODE_HOST || `tunnel.${domain.domain}`;
-      const tunnelPort = process.env.TUNNEL_NODE_PORT || "443";
-      tunnelUrl = `http://${tunnelHost}:${tunnelPort}`;
-    }
+async function getTunnelTarget(apiKey) {
+  if (!apiKey.domainId) return null;
+
+  const domain = await prisma.domain.findUnique({ 
+    where: { id: apiKey.domainId },
+    include: { node: true }
+  });
+
+  if (domain?.node?.url && domain?.node?.token) {
+    return { url: domain.node.url, token: domain.node.token };
   }
-  return tunnelUrl || "http://127.0.0.1:8765";
+  return null;
 }
 
 async function tunnelCommand(apiKey, command) {
   try {
-    const tunnelUrl = await getTunnelUrl(apiKey);
-    const res = await fetch(`${tunnelUrl}/${command}/${apiKey.id}`, {
+    const target = await getTunnelTarget(apiKey);
+    if (!target) {
+      console.log(`[Tunnel] Missing target for ${apiKey.id}, cannot send ${command}`);
+      return;
+    }
+    
+    const baseUrl = target.url.replace(/\/$/, '');
+    const res = await fetch(`${baseUrl}/${command}/${apiKey.id}`, {
       method: "POST",
-      headers: { "x-internal-secret": process.env.INTERNAL_SECRET }
+      headers: { "x-node-token": target.token }
     });
-    console.log(`[Tunnel] ${command} → ${tunnelUrl}/${command}/${apiKey.id} - Status: ${res.status}`);
+    console.log(`[Tunnel] ${command} → ${baseUrl}/${command}/${apiKey.id} - Status: ${res.status}`);
   } catch (err) {
     console.log(`[Tunnel Error] ${command} failed for ${apiKey.id}:`, err.message);
   }
@@ -50,12 +57,38 @@ export async function PATCH(req, { params }) {
       const crypto = require("crypto");
       const rawSecret = crypto.randomBytes(24).toString("base64url");
       
-      let tunnelHost = process.env.TUNNEL_NODE_HOST || "tunnel.mineway.cloud";
-      const tunnelPort = process.env.TUNNEL_NODE_PORT || "443";
+      let tunnelHost = null;
+      let tunnelPort = "443";
       
-      if (!process.env.TUNNEL_NODE_HOST && existing.domainId) {
-        const domain = await prisma.domain.findUnique({ where: { id: existing.domainId } });
-        if (domain) tunnelHost = `tunnel.${domain.domain}`;
+      if (existing.domainId) {
+        const domain = await prisma.domain.findUnique({ 
+          where: { id: existing.domainId },
+          include: { node: true }
+        });
+        if (domain) {
+          tunnelHost = `tunnel.${domain.domain}`;
+          
+          if (domain.node?.url) {
+            try {
+              const parsedNode = new URL(domain.node.url);
+              const isIp = require("net").isIP(parsedNode.hostname);
+              if (!isIp && parsedNode.hostname !== "localhost") {
+                tunnelHost = parsedNode.hostname;
+              }
+              // Use the port from the URL if explicitly specified
+              if (parsedNode.port) {
+                tunnelPort = parsedNode.port;
+              }
+            } catch (e) { /* ignore */ }
+          }
+        }
+      }
+
+      if (!tunnelHost) {
+        return NextResponse.json(
+          { error: "No Physical Node is linked to this domain. Please configure it in Admin > Nodes." },
+          { status: 400 }
+        );
       }
 
       const payloadBuffer = Buffer.from(`${tunnelHost}:${tunnelPort}|${rawSecret}`);
@@ -122,14 +155,14 @@ export async function DELETE(req, { params }) {
     if (existing.isCustomPort) {
       try {
         const domain = await prisma.domain.findUnique({ where: { id: existing.domainId } });
-        if (domain && domain.cfZoneId) {
+        if (domain && domain.cloudflareZoneId) {
           const srv = await findSrvRecord({
-            zoneId: domain.cfZoneId,
-            subdomain: existing.name,
+            zoneId: domain.cloudflareZoneId,
+            subdomain: existing.subdomain,
             domain: domain.domain
           });
           if (srv) {
-            await deleteSrvRecord({ zoneId: domain.cfZoneId, recordId: srv.id });
+            await deleteSrvRecord({ zoneId: domain.cloudflareZoneId, recordId: srv.id });
           }
         }
       } catch (err) {
@@ -137,7 +170,16 @@ export async function DELETE(req, { params }) {
       }
     }
 
-    await prisma.apiKey.delete({ where: { id } });
+    // Perform soft-delete to preserve bandwidth history without colliding with new keys
+    await prisma.apiKey.update({
+      where: { id },
+      data: {
+        status: "deleted",
+        name: `${existing.name}_del_${Date.now()}`,
+        subdomain: existing.subdomain ? `${existing.subdomain}_del_${Date.now()}` : null,
+        assignedPort: null, // Free up the port
+      }
+    });
 
     // Kick active tunnel connection
     await tunnelCommand(existing, "kick");

@@ -17,6 +17,7 @@ export async function GET() {
         domain: true,
         description: true,
         isDefault: true,
+        nodeId: true,
       },
     });
 

@@ -16,38 +16,36 @@ export async function GET(req) {
     // Get user's API keys with their domain info
     const apiKeys = await prisma.apiKey.findMany({
       where: { userId: session.user.id },
-      select: { id: true, domainId: true, domain: { select: { domain: true, tunnelNode: true } } },
+      select: { id: true, rxBytes: true, txBytes: true, domainId: true, domain: { select: { domain: true, node: true } } },
     });
 
     if (apiKeys.length === 0) {
       return NextResponse.json({ connections: {} });
     }
 
-    // Group keys by their tunnel server URL
-    const tunnelGroups = new Map(); // tunnelUrl -> [keyId, ...]
+    // Group keys by their mapped Node
+    const nodeGroups = new Map(); // nodeId -> { node, keys: [] }
     for (const key of apiKeys) {
-      let tunnelUrl = key.domain?.tunnelNode;
-      if (!tunnelUrl) {
-        tunnelUrl = process.env.TUNNEL_SERVER_URL || "http://127.0.0.1:8765";
-      }
+      const node = key.domain?.node;
+      if (!node) continue; // Skip if no node assigned
 
-      // Ensure we hit the node directly, don't ping wss or https generally if we can assume it's internal API.
-      // But keeping it flexible if users set https://.
-      
-      if (!tunnelGroups.has(tunnelUrl)) {
-        tunnelGroups.set(tunnelUrl, []);
+      if (!nodeGroups.has(node.id)) {
+        nodeGroups.set(node.id, { node, keys: [] });
       }
-      tunnelGroups.get(tunnelUrl).push(key.id);
+      nodeGroups.get(node.id).keys.push(key);
     }
 
     const connections = {};
 
-    // Query each tunnel server's /stats endpoint
-    const fetchPromises = [...tunnelGroups.entries()].map(
-      async ([tunnelUrl, keyIds]) => {
+    // Query each Node's /stats endpoint
+    const fetchPromises = [...nodeGroups.values()].map(
+      async ({ node, keys }) => {
         try {
-          const res = await fetch(`${tunnelUrl}/stats`, {
-            headers: { "x-internal-secret": process.env.INTERNAL_SECRET },
+          const res = await fetch(`${node.url}/stats`, {
+            cache: "no-store",
+            headers: { 
+              "x-node-token": node.token
+            },
             signal: AbortSignal.timeout(5000),
           });
 
@@ -57,27 +55,42 @@ export async function GET(req) {
               (data.sessions || []).map((s) => s.keyId)
             );
 
-            for (const keyId of keyIds) {
+            const now = new Date();
+            const MS_PER_30_DAYS = 30 * 24 * 60 * 60 * 1000;
+            const isNewCycle = (key) => {
+              if (!key.lastUsedAt || !key.createdAt) return false;
+              const lastCycle = Math.floor((key.lastUsedAt.getTime() - key.createdAt.getTime()) / MS_PER_30_DAYS);
+              const currentCycle = Math.floor((now.getTime() - key.createdAt.getTime()) / MS_PER_30_DAYS);
+              return currentCycle > lastCycle;
+            };
+
+            for (const key of keys) {
               const sessionInfo = (data.sessions || []).find(
-                (s) => s.keyId === keyId
+                (s) => s.keyId === key.id
               );
-              connections[keyId] = {
-                connected: activeSessions.has(keyId),
+              
+              const reset = isNewCycle(key);
+              
+              connections[key.id] = {
+                connected: activeSessions.has(key.id),
+                assignedPort: sessionInfo?.assignedPort || null,
                 tcpPlayers: sessionInfo?.tcpPlayers || 0,
                 udpClients: sessionInfo?.udpClients || 0,
                 uptime: sessionInfo?.uptime || 0,
+                rxBytes: reset ? 0 : Number(key.rxBytes),
+                txBytes: reset ? 0 : Number(key.txBytes),
               };
             }
           } else {
             // Tunnel server responded but with error
-            for (const keyId of keyIds) {
-              connections[keyId] = { connected: false, tcpPlayers: 0, udpClients: 0, uptime: 0 };
+            for (const key of keys) {
+              connections[key.id] = { connected: false, tcpPlayers: 0, udpClients: 0, uptime: 0, rxBytes: Number(key.rxBytes), txBytes: Number(key.txBytes) };
             }
           }
         } catch (err) {
           // Tunnel server unreachable
-          for (const keyId of keyIds) {
-            connections[keyId] = { connected: false, tcpPlayers: 0, udpClients: 0, uptime: 0 };
+          for (const key of keys) {
+            connections[key.id] = { connected: false, tcpPlayers: 0, udpClients: 0, uptime: 0, rxBytes: Number(key.rxBytes), txBytes: Number(key.txBytes) };
           }
         }
       }

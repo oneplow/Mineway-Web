@@ -25,6 +25,7 @@ export default function AdminSidebar({ user }) {
     { href: "/admin/plans", label: "Plans & Packages", icon: Package },
     { href: "/admin/codes", label: "Redemption Codes", icon: Sparkles },
     { href: "/admin/payments", label: "Payment Review", icon: CreditCard },
+    { href: "/admin/nodes", label: "Physical Nodes", icon: Server },
     { href: "/admin/domains", label: "Domains & Roots", icon: Globe },
     { href: "/admin/settings", label: "Site Config", icon: Sliders },
     { href: "/admin/tunnels", label: "Tunnels Control", icon: KeyRound },

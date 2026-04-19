@@ -15,16 +15,15 @@ export async function GET(req, { params }) {
   // Verify ownership or collaborator access
   const apiKey = await prisma.apiKey.findUnique({
     where: { id },
-    select: { userId: true, collaborators: { where: { userId: session.user.id } } },
+    select: { userId: true },
   });
 
   if (!apiKey) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const isOwner = apiKey.userId === session.user.id;
-  const isCollaborator = apiKey.collaborators.length > 0;
   const isAdmin = session.user.role === "ADMIN";
 
-  if (!isOwner && !isCollaborator && !isAdmin) {
+  if (!isOwner && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

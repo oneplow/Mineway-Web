@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { createPortal } from "react-dom";
-import { MoreVertical, Globe, Plus, Trash2, Edit2, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { MoreVertical, Globe, Plus, Trash2, Edit2, ShieldCheck, CheckCircle2, ChevronDown, Server } from "lucide-react";
 import toast from "react-hot-toast";
 
 function PingBadge({ ping }) {
@@ -28,7 +28,7 @@ function PingBadge({ ping }) {
   );
 }
 
-export default function DomainClientTable({ initialDomains }) {
+export default function DomainClientTable({ initialDomains, nodes }) {
   const [domains, setDomains] = useState(initialDomains);
   const [dropdownOpen, setDropdownOpen] = useState(null);
   
@@ -41,15 +41,21 @@ export default function DomainClientTable({ initialDomains }) {
       let changed = false;
       const promises = domains.map(async (d) => {
         if (results[d.id] !== undefined) return; // already scanned
+        
+        // If domain has no node linked, it's effectively offline
+        if (!d.nodeId) {
+          results[d.id] = -1;
+          changed = true;
+          return;
+        }
+
         changed = true;
-        const start = performance.now();
         try {
-          await fetch(`https://tunnel.${d.domain}/health`, {
-            mode: 'no-cors',
-            cache: 'no-store',
-            signal: AbortSignal.timeout(3000)
-          });
-          results[d.id] = Math.round(performance.now() - start);
+          const res = await fetch(`/api/nodes/ping?nodeId=${d.nodeId}`);
+          if (!res.ok) throw new Error("Ping failed");
+          
+          const data = await res.json();
+          results[d.id] = data.ping !== undefined ? data.ping : -1;
         } catch (e) {
           results[d.id] = -1;
         }
@@ -64,18 +70,19 @@ export default function DomainClientTable({ initialDomains }) {
   const [modalType, setModalType] = useState(null); // 'create', 'edit', 'delete'
   const [selectedDomain, setSelectedDomain] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [nodeDropdownOpen, setNodeDropdownOpen] = useState(false);
 
   const [form, setForm] = useState({
     domain: "",
     description: "",
-    tunnelNode: "http://localhost:8765",
+    nodeId: "",
     cloudflareZoneId: "",
     isDefault: false,
     isActive: true,
   });
 
   const openCreateModal = () => {
-    setForm({ domain: "", description: "", tunnelNode: "http://localhost:8765", cloudflareZoneId: "", isDefault: false, isActive: true });
+    setForm({ domain: "", description: "", nodeId: "", cloudflareZoneId: "", isDefault: false, isActive: true });
     setModalType("create");
     setSelectedDomain(null);
   };
@@ -84,7 +91,7 @@ export default function DomainClientTable({ initialDomains }) {
     setForm({
       domain: d.domain,
       description: d.description || "",
-      tunnelNode: d.tunnelNode || "http://localhost:8765",
+      nodeId: d.nodeId || "",
       cloudflareZoneId: d.cloudflareZoneId || "",
       isDefault: d.isDefault,
       isActive: d.isActive,
@@ -104,6 +111,7 @@ export default function DomainClientTable({ initialDomains }) {
     setModalType(null);
     setSelectedDomain(null);
     setIsProcessing(false);
+    setNodeDropdownOpen(false);
   };
 
   const handleSubmit = async (e) => {
@@ -113,6 +121,9 @@ export default function DomainClientTable({ initialDomains }) {
     try {
       const isEdit = modalType === "edit";
       const payload = { ...form };
+      
+      if (!payload.nodeId) delete payload.nodeId;
+      
       if (isEdit) payload.id = selectedDomain.id;
 
       const res = await fetch("/api/admin/domains", {
@@ -227,7 +238,11 @@ export default function DomainClientTable({ initialDomains }) {
                   </td>
                   <td className="px-7 py-5">
                     <div className="flex items-center space-x-2">
-                       <span className="text-[12px] font-mono text-cyan-400/80 bg-cyan-500/10 px-2 py-1 rounded-md">{d.tunnelNode || "http://localhost:8765"}</span>
+                       {d.node ? (
+                         <span className="text-[12px] font-mono text-cyan-400/80 bg-cyan-500/10 px-2 py-1 rounded-md">{d.node.name}</span>
+                       ) : (
+                         <span className="text-[12px] font-mono text-amber-400/80 bg-amber-500/10 px-2 py-1 rounded-md">Unassigned</span>
+                       )}
                     </div>
                   </td>
                   <td className="px-7 py-5 whitespace-nowrap">
@@ -343,16 +358,49 @@ export default function DomainClientTable({ initialDomains }) {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">Tunnel Node URL</label>
-                  <input 
-                    type="text"
-                    placeholder="ex. http://th1.mineway.cloud:8765" 
-                    value={form.tunnelNode} 
-                    onChange={e => setForm({ ...form, tunnelNode: e.target.value })}
-                    className="w-full bg-[#161a22] border border-gray-800 rounded-xl px-4 py-3.5 text-cyan-400 font-medium outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all font-mono placeholder:font-sans placeholder:text-gray-600" 
-                  />
-                  <p className="text-[11px] text-gray-500 mt-2 px-1">ที่อยู่ของ VPS โหนด (ต้องขึ้นต้นด้วย http:// และมี port 8765)</p>
+                <div className="relative">
+                  <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">Physical Node (Infrastructure)</label>
+                  <div
+                    onClick={() => setNodeDropdownOpen(!nodeDropdownOpen)}
+                    className="w-full bg-gray-50 dark:bg-[#161a22] border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 text-gray-900 dark:text-white text-sm font-bold outline-none cursor-pointer hover:border-cyan-500 dark:hover:border-cyan-500 shadow-inner transition-all flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                       <Server size={16} className="text-cyan-400" />
+                       <span>{form.nodeId && nodes ? nodes.find(n => n.id === form.nodeId)?.name : "-- Select a Node --"}</span>
+                       {form.nodeId && nodes && (
+                         <span className="text-gray-500 font-mono text-[11px] ml-1">({nodes.find(n => n.id === form.nodeId)?.url})</span>
+                       )}
+                    </span>
+                    <ChevronDown size={18} className={`text-gray-500 transition-transform ${nodeDropdownOpen ? 'rotate-180' : ''}`} />
+                  </div>
+                  
+                  {nodeDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-[105]" onClick={() => setNodeDropdownOpen(false)}></div>
+                      <div className="absolute top-[105%] left-0 right-0 bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-xl shadow-xl z-[110] overflow-hidden animate-fade-in py-1 max-h-60 overflow-y-auto custom-scrollbar">
+                        {nodes?.map(n => (
+                           <div
+                             key={n.id}
+                             onClick={() => { setForm({ ...form, nodeId: n.id }); setNodeDropdownOpen(false); }}
+                             className={`px-4 py-3 cursor-pointer text-[14px] flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#1e2330] transition-colors ${form.nodeId === n.id ? 'bg-[#10d97e]/10 text-[#10d97e] font-bold' : 'text-gray-700 dark:text-[#8892a4]'}`}
+                           >
+                             <span className="flex items-center gap-2">
+                               <Server size={14} />
+                               <span>{n.name}</span>
+                               <span className="text-[11px] text-gray-500 font-mono ml-1">— {n.url}</span>
+                             </span>
+                             <div className="flex items-center gap-3">
+                               {form.nodeId === n.id && <CheckCircle2 size={16} className="text-[#10d97e]" />}
+                             </div>
+                           </div>
+                        ))}
+                        {(!nodes || nodes.length === 0) && (
+                           <div className="px-4 py-4 text-center text-sm text-gray-500">No nodes available.</div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                  <p className="text-[11px] text-gray-500 mt-2 px-1">เลือก Node Server ที่โดเมนนี้จะเชื่อมต่อ</p>
                 </div>
 
                 <div className="bg-[#121620] border border-white/5 rounded-2xl p-5 shadow-inner">

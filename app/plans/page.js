@@ -166,10 +166,10 @@ export default function PlansPage() {
 
                 <button
                   onClick={() => initiatePurchase(plan)}
-                  disabled={isCurrent}
-                  className={`w-full py-3.5 font-bold rounded-xl transition-all ${isCurrent ? 'bg-black/5 dark:bg-white/5 text-gray-400 dark:text-[#4a5568] cursor-not-allowed' : plan.isPopular ? 'bg-[#10d97e] hover:bg-[#0ea865] text-white shadow-[#10d97e]/20 shadow-md' : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-gray-900 dark:text-white ring-1 ring-black/5 dark:ring-white/5'}`}
+                  disabled={isCurrent || (user?.plan && plan.pricePoints < user.plan.pricePoints)}
+                  className={`w-full py-3.5 font-bold rounded-xl transition-all ${(isCurrent || (user?.plan && plan.pricePoints < user.plan.pricePoints)) ? 'bg-black/5 dark:bg-white/5 text-gray-400 dark:text-[#4a5568] cursor-not-allowed' : plan.isPopular ? 'bg-[#10d97e] hover:bg-[#0ea865] text-white shadow-[#10d97e]/20 shadow-md' : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-gray-900 dark:text-white ring-1 ring-black/5 dark:ring-white/5'}`}
                 >
-                  {isCurrent ? "กำลังใช้งาน" : plan.pricePoints === 0 ? "เริ่มต้นฟรี" : `เลือกแพ็กเกจ ${plan.displayName}`}
+                  {isCurrent ? "กำลังใช้งาน" : (user?.plan && plan.pricePoints < user.plan.pricePoints ? "ไม่สามารถดาวน์เกรดได้" : (plan.pricePoints === 0 ? "เริ่มต้นฟรี" : `เลือกแพ็กเกจ ${plan.displayName}`))}
                 </button>
               </div>
             );

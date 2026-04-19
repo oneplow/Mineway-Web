@@ -121,7 +121,7 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              <h2 className="text-xl font-bold text-gray-900 dark:text-[#e8ecf4] relative z-10 mb-1">{userData?.username}</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-[#e8ecf4] relative z-10 mb-1">{userData?.username || 'User'}</h2>
               <p className="text-sm text-gray-500 dark:text-[#8892a4] relative z-10 mb-6">{userData?.email}</p>
 
               <div className="w-full flex justify-between items-center px-4 py-3 bg-gray-50 dark:bg-[#0a0c0f] rounded-2xl border border-gray-100 dark:border-[#1e2330] mb-3">

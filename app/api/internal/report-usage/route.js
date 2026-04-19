@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/auth";
 
 export async function POST(req) {
-  const secret = req.headers.get("x-internal-secret");
-  if (!secret || secret !== process.env.INTERNAL_SECRET) {
-    return NextResponse.json({ ok: false }, { status: 401 });
+  const token = req.headers.get("x-node-token");
+  if (!token) {
+    return NextResponse.json({ ok: false, reason: "missing_token" }, { status: 401 });
+  }
+
+  const node = await prisma.node.findUnique({ where: { token } });
+  if (!node || !node.isActive) {
+    return NextResponse.json({ ok: false, reason: "unauthorized_node" }, { status: 401 });
   }
 
   const body = await req.json().catch(() => null);
@@ -20,7 +25,7 @@ export async function POST(req) {
   try {
     const existingKey = await prisma.apiKey.findUnique({
       where: { id: keyId },
-      select: { id: true },
+      select: { id: true, lastUsedAt: true, status: true, createdAt: true },
     });
 
     if (!existingKey) {
@@ -38,6 +43,28 @@ export async function POST(req) {
       now.getHours()
     );
 
+    // --- LAZY 30-DAY CYCLE RESET LOGIC ---
+    let isNewCycle = false;
+    if (existingKey.lastUsedAt && existingKey.createdAt) {
+      const MS_PER_30_DAYS = 30 * 24 * 60 * 60 * 1000;
+      const lastCycle = Math.floor((existingKey.lastUsedAt.getTime() - existingKey.createdAt.getTime()) / MS_PER_30_DAYS);
+      const currentCycle = Math.floor((now.getTime() - existingKey.createdAt.getTime()) / MS_PER_30_DAYS);
+      isNewCycle = currentCycle > lastCycle;
+    }
+
+    if (isNewCycle) {
+      console.log(`[Lazy Reset] Triggered 30-day cycle reset for Key ${keyId}`);
+      await prisma.apiKey.update({
+        where: { id: keyId },
+        data: {
+          rxBytes: 0,
+          txBytes: 0,
+          status: existingKey.status === "suspended" ? "active" : existingKey.status
+        }
+      });
+    }
+    // ------------------------
+
     let retries = 3;
     while (retries > 0) {
       try {
@@ -50,30 +77,21 @@ export async function POST(req) {
           },
         });
 
-        try {
-          await prisma.bandwidthLog.update({
-            where: {
-              apiKeyId_timestamp: { apiKeyId: keyId, timestamp: currentHour },
-            },
-            data: {
-              rxBytes: { increment: BigInt(rxBytes) },
-              txBytes: { increment: BigInt(txBytes) },
-            },
-          });
-        } catch (updateErr) {
-          if (updateErr.code === "P2025") {
-            await prisma.bandwidthLog.create({
-              data: {
-                apiKeyId: keyId,
-                timestamp: currentHour,
-                rxBytes: BigInt(rxBytes),
-                txBytes: BigInt(txBytes),
-              },
-            });
-          } else {
-            throw updateErr;
-          }
-        }
+        await prisma.bandwidthLog.upsert({
+          where: {
+            apiKeyId_timestamp: { apiKeyId: keyId, timestamp: currentHour },
+          },
+          update: {
+            rxBytes: { increment: BigInt(rxBytes) },
+            txBytes: { increment: BigInt(txBytes) },
+          },
+          create: {
+            apiKeyId: keyId,
+            timestamp: currentHour,
+            rxBytes: BigInt(rxBytes),
+            txBytes: BigInt(txBytes),
+          },
+        });
 
         break;
       } catch (err) {

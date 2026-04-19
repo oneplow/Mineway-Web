@@ -22,16 +22,26 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Calculate totals
     const activeKeys = user.apiKeys.filter((k) => k.status === "active").length;
-    const totalKeys = user.apiKeys.length;
-    const totalRxBytes = user.apiKeys.reduce((sum, k) => sum + Number(k.rxBytes), 0);
-    const totalTxBytes = user.apiKeys.reduce((sum, k) => sum + Number(k.txBytes), 0);
+    const totalKeys = user.apiKeys.filter((k) => k.status !== "deleted").length;
+    
+    const now = new Date();
+    const MS_PER_30_DAYS = 30 * 24 * 60 * 60 * 1000;
+    const isNewCycle = (key) => {
+      if (!key.lastUsedAt || !key.createdAt) return false;
+      const lastCycle = Math.floor((key.lastUsedAt.getTime() - key.createdAt.getTime()) / MS_PER_30_DAYS);
+      const currentCycle = Math.floor((now.getTime() - key.createdAt.getTime()) / MS_PER_30_DAYS);
+      return currentCycle > lastCycle;
+    };
+
+    const totalRxBytes = user.apiKeys.reduce((sum, k) => sum + (isNewCycle(k) ? 0 : Number(k.rxBytes)), 0);
+    const totalTxBytes = user.apiKeys.reduce((sum, k) => sum + (isNewCycle(k) ? 0 : Number(k.txBytes)), 0);
     const totalTrafficGB = ((totalRxBytes + totalTxBytes) / (1024 * 1024 * 1024)).toFixed(2);
 
     return NextResponse.json({
       id: user.id,
-      username: user.username,
+      name: user.name,
+      username: user.username || user.email?.split("@")[0],
       email: user.email,
       image: user.image,
       points: user.points,

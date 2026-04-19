@@ -222,4 +222,4 @@ export async function POST(req) {
     console.error("POST /api/payments/verify-slip error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}mui
+}

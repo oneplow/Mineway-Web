@@ -11,7 +11,10 @@ export async function GET() {
 
     const domains = await prisma.domain.findMany({
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { apiKeys: true } } },
+      include: { 
+        _count: { select: { apiKeys: true } },
+        node: true
+      },
     });
 
     return NextResponse.json(domains);
@@ -30,7 +33,7 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { domain, description, tunnelNode, isDefault, cloudflareZoneId } = body;
+    const { domain, description, nodeId, isDefault, cloudflareZoneId } = body;
 
     if (!domain || !domain.trim()) {
       return NextResponse.json({ error: "Domain is required" }, { status: 400 });
@@ -58,11 +61,14 @@ export async function POST(req) {
       data: {
         domain: cleanDomain,
         description: description?.trim() || null,
-        tunnelNode: tunnelNode?.trim() || "http://localhost:8765",
+        nodeId: nodeId || null,
         cloudflareZoneId: cloudflareZoneId?.trim() || null,
         isDefault: isDefault || false,
       },
-      include: { _count: { select: { apiKeys: true } } },
+      include: { 
+        _count: { select: { apiKeys: true } },
+        node: true
+      },
     });
 
     return NextResponse.json(newDomain, { status: 201 });
@@ -81,7 +87,7 @@ export async function PATCH(req) {
     }
 
     const body = await req.json();
-    const { id, domain, description, tunnelNode, isDefault, isActive, cloudflareZoneId } = body;
+    const { id, domain, description, nodeId, isDefault, isActive, cloudflareZoneId } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Domain ID is required" }, { status: 400 });
@@ -107,7 +113,7 @@ export async function PATCH(req) {
       updateData.domain = cleanDomain;
     }
     if (description !== undefined) updateData.description = description?.trim() || null;
-    if (tunnelNode !== undefined) updateData.tunnelNode = tunnelNode?.trim() || "http://localhost:8765";
+    if (nodeId !== undefined) updateData.nodeId = nodeId || null;
     if (cloudflareZoneId !== undefined) updateData.cloudflareZoneId = cloudflareZoneId?.trim() || null;
     if (isDefault !== undefined) updateData.isDefault = isDefault;
     if (isActive !== undefined) updateData.isActive = isActive;
@@ -115,7 +121,10 @@ export async function PATCH(req) {
     const updated = await prisma.domain.update({
       where: { id },
       data: updateData,
-      include: { _count: { select: { apiKeys: true } } },
+      include: { 
+        _count: { select: { apiKeys: true } },
+        node: true
+      },
     });
 
     return NextResponse.json({ success: true, domain: updated });

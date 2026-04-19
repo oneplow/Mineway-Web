@@ -5,7 +5,12 @@ import DomainClientTable from "@/components/admin/DomainClientTable";
 export default async function AdminDomainsPage() {
   const domains = await prisma.domain.findMany({
     orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
-    include: { _count: { select: { apiKeys: true } } },
+    include: { _count: { select: { apiKeys: true } }, node: true },
+  });
+
+  const nodes = await prisma.node.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, url: true }
   });
 
   const totalTunnels = domains.reduce((sum, d) => sum + d._count.apiKeys, 0);
@@ -21,7 +26,7 @@ export default async function AdminDomainsPage() {
           <p className="text-sm text-gray-400 mt-2 font-medium">จัดการโดเมนทั้งหมดที่ใช้เชื่อมต่อ Tunnel Subdomain</p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-900 px-4 py-2 rounded-xl">
+          <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 px-4 py-2 rounded-xl">
             <Globe className="h-4 w-4 text-cyan-400" />
             <span className="text-sm font-bold text-cyan-400">{domains.length} Domains</span>
           </div>
@@ -32,7 +37,7 @@ export default async function AdminDomainsPage() {
       </div>
 
       {/* Client Table Component */}
-      <DomainClientTable initialDomains={domains} />
+      <DomainClientTable initialDomains={domains} nodes={nodes} />
     </div>
   );
 }

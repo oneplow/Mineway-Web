@@ -22,43 +22,50 @@ export async function GET() {
 
     const allKeys = await prisma.apiKey.findMany({
       where: {
-        OR: [
-          { userId: session.user.id },
-          { collaborators: { some: { userId: session.user.id } } },
-        ],
+        userId: session.user.id,
+        status: { not: "deleted" },
       },
       orderBy: { createdAt: "desc" },
       include: {
         domain: true,
-        collaborators: {
-          where: { userId: session.user.id },
-          select: { role: true },
-        },
       },
     });
 
-    const myKeys = allKeys.filter((key) => key.userId === session.user.id);
-    const sharedKeys = allKeys.filter((key) => key.userId !== session.user.id);
+    const myKeys = allKeys;
+    const sharedKeys = [];
 
-    const serialize = (key) => ({
-      id: key.id,
-      userId: key.userId,
-      name: key.name,
-      subdomain:
-        key.subdomain && key.domain
-          ? `${key.subdomain}.${key.domain.domain}`
-          : null,
-      prefix: key.prefix,
-      region: key.region,
-      assignedPort: key.assignedPort,
-      isCustomPort: key.isCustomPort,
-      status: key.status,
-      rxBytes: Number(key.rxBytes),
-      txBytes: Number(key.txBytes),
-      expiresAt: key.expiresAt,
-      createdAt: key.createdAt,
-      role: key.collaborators?.[0]?.role,
-    });
+    const now = new Date();
+    const MS_PER_30_DAYS = 30 * 24 * 60 * 60 * 1000;
+    
+    // Check if the current 30-day cycle is different from the cycle when last used
+    const isNewCycle = (key) => {
+      if (!key.lastUsedAt || !key.createdAt) return false;
+      const lastCycle = Math.floor((key.lastUsedAt.getTime() - key.createdAt.getTime()) / MS_PER_30_DAYS);
+      const currentCycle = Math.floor((now.getTime() - key.createdAt.getTime()) / MS_PER_30_DAYS);
+      return currentCycle > lastCycle;
+    };
+
+    const serialize = (key) => {
+      const reset = isNewCycle(key);
+      return {
+        id: key.id,
+        userId: key.userId,
+        name: key.name,
+        subdomain:
+          key.subdomain && key.domain
+            ? `${key.subdomain}.${key.domain.domain}`
+            : null,
+        prefix: key.prefix,
+        region: key.region,
+        assignedPort: key.assignedPort,
+        isCustomPort: key.isCustomPort,
+        status: reset && key.status === "suspended" ? "active" : key.status,
+        rxBytes: reset ? 0 : Number(key.rxBytes),
+        txBytes: reset ? 0 : Number(key.txBytes),
+        expiresAt: key.expiresAt,
+        createdAt: key.createdAt,
+      };
+    };
 
     return NextResponse.json({
       keys: myKeys.map(serialize),
@@ -98,10 +105,12 @@ export async function POST(req) {
       );
     }
 
+    const domainInclude = { node: true };
     let selectedDomain;
     if (domainId) {
       selectedDomain = await prisma.domain.findFirst({
         where: { id: domainId, isActive: true },
+        include: domainInclude,
       });
       if (!selectedDomain) {
         return NextResponse.json(
@@ -113,8 +122,9 @@ export async function POST(req) {
       selectedDomain =
         (await prisma.domain.findFirst({
           where: { isDefault: true, isActive: true },
+          include: domainInclude,
         })) ||
-        (await prisma.domain.findFirst({ where: { isActive: true } }));
+        (await prisma.domain.findFirst({ where: { isActive: true }, include: domainInclude }));
 
       if (!selectedDomain) {
         return NextResponse.json(
@@ -183,9 +193,24 @@ export async function POST(req) {
     }
 
     const rawSecret = crypto.randomBytes(24).toString("base64url");
-    const tunnelHost =
-      process.env.TUNNEL_NODE_HOST || `tunnel.${selectedDomain.domain}`;
-    const tunnelPort = process.env.TUNNEL_NODE_PORT || "443";
+    
+    let tunnelHost = `tunnel.${selectedDomain.domain}`;
+    let tunnelPort = "443";
+    
+    if (selectedDomain.node?.url) {
+      try {
+        const parsedNode = new URL(selectedDomain.node.url);
+        const isIp = require("net").isIP(parsedNode.hostname);
+        if (!isIp && parsedNode.hostname !== "localhost") {
+          tunnelHost = parsedNode.hostname;
+        }
+        // Use the port from the URL if explicitly specified
+        if (parsedNode.port) {
+          tunnelPort = parsedNode.port;
+        }
+      } catch (e) { /* ignore parse errors */ }
+    }
+
     const encodedPayload = Buffer.from(
       `${tunnelHost}:${tunnelPort}|${rawSecret}`
     ).toString("base64url");

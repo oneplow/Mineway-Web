@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 /**
  * POST /api/payments/voucher
- * Validates a TrueMoney Voucher (Angpao) link using @mrchimky/voucherjs
+ * Validates and redeems a TrueMoney Voucher (Angpao) link using @opecgame/twapi.
  * If successful, creates a completed payment record and credits points.
  */
 export async function POST(req) {
@@ -20,26 +20,6 @@ export async function POST(req) {
       return NextResponse.json({ error: "ลิงก์ซองอั่งเปาไม่ถูกต้อง" }, { status: 400 });
     }
 
-    // Extract the voucher hash/code strictly
-    let voucherHash = "";
-    try {
-      const urlObj = new URL(url);
-      voucherHash = urlObj.searchParams.get("v") || "";
-    } catch {
-      // If URL parsing fails, try regex
-      const match = url.match(/[0-9A-Za-z]{35}/);
-      if (match) voucherHash = match[0];
-    }
-
-    if (!voucherHash) {
-      const match = url.match(/[0-9A-Za-z]{35}/);
-      if (match) voucherHash = match[0];
-    }
-
-    if (!voucherHash || voucherHash.length !== 35) {
-      return NextResponse.json({ error: "รูปแบบลิงก์ซองอั่งเปาไม่ถูกต้อง (หรือขาดรหัส 35 ตัว)" }, { status: 400 });
-    }
-
     // Get the configured phone number
     const setting = await prisma.siteSetting.findUnique({
       where: { key: "truemoney_phone" },
@@ -53,44 +33,54 @@ export async function POST(req) {
       );
     }
 
-    // Call voucher API with the clean hash
-    let data;
+    // Redeem the voucher using @opecgame/twapi
+    let tw;
     try {
-      const voucher = require("@mrchimky/voucherjs");
-      // passing the clean 35-char hash prevents voucherjs crash
-      data = await voucher(phone, voucherHash);
-      // data.status, data.amount
+      const twApi = require("@opecgame/twapi");
+      tw = await twApi(url, phone);
     } catch (apiError) {
-      if (!apiError?.message?.includes("invaild") && !apiError?.message?.includes("invalid") && !apiError?.message?.includes("phone")) {
-        console.error("Voucher API Error:", apiError);
-      }
-      let errMsg = "ระบบไม่สามารถตรวจสอบซองอั่งเปาได้ (ซองอาจถูกรับไปแล้ว หรือลิงก์ผิด)";
-      if (apiError?.message?.includes("invaild_voucher") || apiError?.message?.includes("invalid_voucher")) {
-        errMsg = "ลิงก์ซองอั่งเปาไม่ถูกต้อง หรือซองนี้ถูกใช้งานไปแล้ว";
-      } else if (apiError?.message?.includes("phone")) {
-        errMsg = "เบอร์วอเล็ตรับเงินปลายทางไม่ถูกต้อง (กรุณาแจ้งแอดมิน)";
-      } else if (apiError?.message) {
-        errMsg = apiError.message; // fallback
-      }
-
-      return NextResponse.json({ error: errMsg }, { status: 400 });
-    }
-
-    if (data?.status !== "SUCCESS") {
+      console.error("TrueMoney twapi error:", apiError);
       return NextResponse.json(
-        { error: "คุณไม่สามารถใช้ซองนี้ได้ (อาจมีผู้รับไปแล้ว หรือยอดเงินไม่พอ)" },
-        { status: 400 }
+        { error: "ไม่สามารถเชื่อมต่อกับ TrueMoney ได้ กรุณาลองใหม่" },
+        { status: 502 }
       );
     }
 
-    const amount = parseFloat(data.amount);
+    const statusCode = tw?.status?.code;
+
+    if (statusCode !== "SUCCESS") {
+      const errorMap = {
+        CANNOT_GET_OWN_VOUCHER: "รับซองตัวเองไม่ได้ (เบอร์ผู้ส่งตรงกับเบอร์แอดมิน)",
+        TARGET_USER_NOT_FOUND: "ไม่พบเบอร์นี้ในระบบ TrueMoney",
+        INTERNAL_ERROR: "ไม่พบซองนี้ในระบบ หรือ URL ผิด",
+        VOUCHER_OUT_OF_STOCK: "ซองอั่งเปานี้ถูกรับไปแล้ว",
+        VOUCHER_NOT_FOUND: "ไม่พบซองในระบบ",
+        VOUCHER_EXPIRED: "ซองอั่งเปานี้หมดอายุแล้ว",
+      };
+
+      const errMsg = errorMap[statusCode] || tw?.status?.message || "ไม่สามารถรับซองอั่งเปาได้";
+      return NextResponse.json({ error: errMsg }, { status: 400 });
+    }
+
+    // SUCCESS — extract amount
+    const amount = parseFloat(tw.data?.my_ticket?.amount_baht || "0");
 
     if (isNaN(amount) || amount <= 0) {
       return NextResponse.json({ error: "ยอดเงินอั่งเปาไม่ถูกต้อง" }, { status: 400 });
     }
 
-    // Successful redemption — create completed payment
-    const [payment] = await prisma.$transaction([
+    // Extract voucher hash for tracking
+    let voucherHash = "";
+    try {
+      const urlObj = new URL(url);
+      voucherHash = urlObj.searchParams.get("v") || "";
+    } catch {
+      const match = url.match(/[0-9A-Za-z]{18,}/);
+      if (match) voucherHash = match[0];
+    }
+
+    // Create completed payment & credit points
+    await prisma.$transaction([
       prisma.payment.create({
         data: {
           userId: session.user.id,
@@ -98,7 +88,7 @@ export async function POST(req) {
           points: Math.floor(amount), // 1 THB = 1 Point
           method: "truemoney_voucher",
           status: "completed",
-          ref: `VOUCHER_${voucherHash.substring(0, 10)}`, // Just tracking which link was used
+          ref: `VOUCHER_${voucherHash.substring(0, 10)}`,
         },
       }),
       prisma.user.update({
