@@ -3,7 +3,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: 'Inter', 'Sarabun', 'Playpen Sans Thai', sans-serif;
+  --font-sans: 'Inter', 'Kanit', 'Playpen Sans Thai', sans-serif;
 }
 
 * {
@@ -21,7 +21,7 @@ html.dark {
 body {
   background: transparent;
   color: #1e293b;
-  font-family: 'Inter', 'Sarabun', 'Playpen Sans Thai', sans-serif;
+  font-family: 'Inter', 'Kanit', 'Playpen Sans Thai', sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
 }

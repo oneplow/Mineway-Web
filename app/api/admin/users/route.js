@@ -37,6 +37,19 @@ export async function PATCH(req) {
       return NextResponse.json({ success: true, user: { id: updatedUser.id, points: updatedUser.points } });
     }
 
+    if (action === "adjustQuota") {
+      if (typeof pointAmount !== "number") {
+        return NextResponse.json({ error: "Invalid quota amount" }, { status: 400 });
+      }
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          extraKeys: Math.max(0, (await prisma.user.findUnique({ where: { id: userId } })).extraKeys + pointAmount)
+        },
+      });
+      return NextResponse.json({ success: true, user: { id: updatedUser.id, extraKeys: updatedUser.extraKeys } });
+    }
+
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
     console.error("PATCH /api/admin/users error:", error);

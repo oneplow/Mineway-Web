@@ -35,6 +35,10 @@ function getRateLimitRule(pathname) {
     return { limit: 600, windowMs: RATE_LIMIT_WINDOW_MS };
   }
 
+  if (pathname.startsWith("/api/internal/connection-state")) {
+    return { limit: 300, windowMs: RATE_LIMIT_WINDOW_MS };
+  }
+
   if (pathname.startsWith("/api/internal/verify-key")) {
     return { limit: 240, windowMs: RATE_LIMIT_WINDOW_MS };
   }

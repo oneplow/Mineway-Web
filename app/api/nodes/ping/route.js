@@ -19,12 +19,13 @@ export async function GET(req) {
       where: { id: nodeId },
     });
 
+
     if (!node || !node.url) {
       return NextResponse.json({ error: "Node not found or has no URL" }, { status: 404 });
     }
 
     const start = performance.now();
-    
+
     // Attempt to fetch the /health endpoint of the Node
     // Using an AbortSignal to timeout after 3 seconds
     const res = await fetch(`${node.url}/health`, {

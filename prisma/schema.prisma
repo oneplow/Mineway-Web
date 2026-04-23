@@ -82,6 +82,8 @@ model ApiKey {
   status       String   @default("inactive") // active | inactive | suspended
   rxBytes      BigInt   @default(0)
   txBytes      BigInt   @default(0)
+  isConnected  Boolean  @default(false)
+  connectedAt  DateTime?
   lastUsedAt   DateTime?
   expiresAt    DateTime?
   createdAt    DateTime @default(now())

@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { X, Copy, ShieldCheck, Trash2, Calendar, HardDrive, Globe, RefreshCw } from "lucide-react";
+import toast from "react-hot-toast";
 import TunnelAnalyticsChart from "./TunnelAnalyticsChart";
 
 
@@ -45,6 +46,26 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [displayKey, setDisplayKey] = useState(apiKey);
+
+  const copyToClipboard = async (text, successMessage) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      toast.success(successMessage);
+    } catch (err) {
+      toast.error("คัดลอกไม่สำเร็จ");
+    }
+  };
 
   useEffect(() => {
     if (!apiKey) {
@@ -151,42 +172,38 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
               {/* Key Prefix */}
               <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
                 <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-3">API Key Prefix</div>
-                <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#0a0c0f] p-3 rounded-xl border border-gray-100 dark:border-[#1e2330]">
-                  <code className="font-mono text-[14px] text-gray-900 dark:text-[#e8ecf4] flex-1 break-all select-all">{displayKey.prefix}••••••••</code>
-                  <button
-                    onClick={() => onCopy(displayKey.prefix)}
-                    className="p-2 text-gray-500 dark:text-[#8892a4] bg-white dark:bg-[#111318] hover:text-[#10d97e] dark:hover:text-[#10d97e] hover:shadow-sm border border-gray-200 dark:border-[#1e2330] rounded-lg transition-all"
-                    title="คัดลอก Prefix"
-                  >
-                    <Copy size={18} />
-                  </button>
-                </div>
+                <button
+                  onClick={() => onResetRequest(displayKey)}
+                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-blue-200 dark:border-blue-500/30 bg-white dark:bg-[#111318] hover:bg-blue-50 dark:hover:bg-blue-500/10 text-blue-600 dark:text-blue-500 font-bold transition-colors"
+                >
+                  <RefreshCw size={18} />
+                  สร้างกุญแจใหม่
+                </button>
                 <p className="text-[11px] text-gray-500 dark:text-[#4a5568] mt-3">
                   กุญแจเต็มจะแสดงครั้งเดียวตอนสร้างเท่านั้น ใช้ Prefix นี้เพื่อระบุตัวตนของ Key
                 </p>
               </div>
 
               {/* Connection Address */}
-              {displayKey.assignedPort && (
-                <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
-                  <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-3">ที่อยู่สำหรับเชื่อมต่อ</div>
-                  <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#0a0c0f] p-3 rounded-xl border border-gray-100 dark:border-[#1e2330]">
-                    <code className="font-mono text-[14px] text-[#10d97e] flex-1 break-all select-all">
-                      {displayKey.subdomain || "mineway.cloud"}{!displayKey.isCustomPort && `:${displayKey.assignedPort}`}
-                    </code>
-                    <button
-                      onClick={() => onCopy(`${displayKey.subdomain || "mineway.cloud"}${!displayKey.isCustomPort ? `:${displayKey.assignedPort}` : ''}`)}
-                      className="p-2 text-gray-500 dark:text-[#8892a4] bg-white dark:bg-[#111318] hover:text-[#10d97e] dark:hover:text-[#10d97e] hover:shadow-sm border border-gray-200 dark:border-[#1e2330] rounded-lg transition-all"
-                      title="คัดลอกที่อยู่"
-                    >
-                      <Copy size={18} />
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-gray-500 dark:text-[#4a5568] mt-3">
-                    ใช้ที่อยู่นี้ได้ทั้ง Java Edition และ Bedrock Edition
-                  </p>
+              <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
+                <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-3">ที่อยู่สำหรับเชื่อมต่อ</div>
+                <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#0a0c0f] p-3 rounded-xl border border-gray-100 dark:border-[#1e2330]">
+                  <code className="font-mono text-[14px] text-[#10d97e] flex-1 break-all select-all">
+                    {displayKey.subdomain ? `${displayKey.subdomain}.${displayKey.domain?.domain || 'mineway.cloud'}` : (displayKey.domain?.domain || 'mineway.cloud')}
+                    {displayKey.assignedPort && !displayKey.isCustomPort ? `:${displayKey.assignedPort}` : ''}
+                  </code>
+                  <button
+                    onClick={() => copyToClipboard(`${displayKey.subdomain ? `${displayKey.subdomain}.${displayKey.domain?.domain || 'mineway.cloud'}` : (displayKey.domain?.domain || 'mineway.cloud')}${displayKey.assignedPort && !displayKey.isCustomPort ? `:${displayKey.assignedPort}` : ''}`, "คัดลอกที่อยู่ไอพีเชื่อมต่อแล้ว!")}
+                    className="p-2 text-gray-500 dark:text-[#8892a4] bg-white dark:bg-[#111318] hover:text-[#10d97e] dark:hover:text-[#10d97e] hover:shadow-sm border border-gray-200 dark:border-[#1e2330] rounded-lg transition-all"
+                    title="คัดลอกที่อยู่"
+                  >
+                    <Copy size={18} />
+                  </button>
                 </div>
-              )}
+                <p className="text-[11px] text-gray-500 dark:text-[#4a5568] mt-3">
+                  ใช้ที่อยู่นี้ได้ทั้ง Java Edition และ Bedrock Edition
+                </p>
+              </div>
 
               {/* Stats Info */}
               <div className="bg-white dark:bg-[#111318] border border-gray-200 dark:border-[#1e2330] rounded-2xl p-5 shadow-sm">
@@ -258,14 +275,6 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
           >
             <ShieldCheck size={18} />
             {displayKey.status === 'active' ? "ระงับการเชื่อมต่อชั่วคราว (Pause)" : "เปิดการเชื่อมต่อ (Resume)"}
-          </button>
-
-          <button
-            onClick={() => onResetRequest(displayKey)}
-            className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-blue-200 dark:border-blue-500/30 bg-white dark:bg-[#111318] hover:bg-blue-50 dark:hover:bg-blue-500/10 text-blue-600 dark:text-blue-500 font-bold transition-colors"
-          >
-            <RefreshCw size={18} />
-            สุ่มสร้างกุญแจใหม่ (Reset Key)
           </button>
 
           <button

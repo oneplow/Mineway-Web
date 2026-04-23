@@ -60,6 +60,8 @@ export async function GET() {
         assignedPort: key.assignedPort,
         isCustomPort: key.isCustomPort,
         status: reset && key.status === "suspended" ? "active" : key.status,
+        isConnected: key.isConnected,
+        connectedAt: key.connectedAt,
         rxBytes: reset ? 0 : Number(key.rxBytes),
         txBytes: reset ? 0 : Number(key.txBytes),
         expiresAt: key.expiresAt,
@@ -192,10 +194,8 @@ export async function POST(req) {
       );
     }
 
-    const rawSecret = crypto.randomBytes(24).toString("base64url");
-    
     let tunnelHost = `tunnel.${selectedDomain.domain}`;
-    let tunnelPort = "443";
+    let tcpPort = process.env.TUNNEL_TCP_PORT || "8765";
     
     if (selectedDomain.node?.url) {
       try {
@@ -204,19 +204,24 @@ export async function POST(req) {
         if (!isIp && parsedNode.hostname !== "localhost") {
           tunnelHost = parsedNode.hostname;
         }
-        // Use the port from the URL if explicitly specified
-        if (parsedNode.port) {
-          tunnelPort = parsedNode.port;
-        }
       } catch (e) { /* ignore parse errors */ }
     }
 
-    const encodedPayload = Buffer.from(
-      `${tunnelHost}:${tunnelPort}|${rawSecret}`
-    ).toString("base64url");
-    const rawKey = `mw_live_${encodedPayload}`;
+    // New HMAC-signed key format: mw_live_<base64url(host:tcpPort)>.<signature>
+    const hmacSigningKey = process.env.HMAC_SIGNING_KEY;
+    if (!hmacSigningKey) {
+      return NextResponse.json({ error: "Server misconfiguration: HMAC_SIGNING_KEY not set" }, { status: 500 });
+    }
+
+    const payload = Buffer.from(`${tunnelHost}:${tcpPort}`).toString("base64url");
+    const signature = crypto.createHmac("sha256", hmacSigningKey)
+      .update(payload)
+      .digest("base64url")
+      .slice(0, 22); // Truncate HMAC to 16 bytes for shorter key
+
+    const rawKey = `mw_live_${payload}.${signature}`;
     const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
-    const prefix = `mw_live_${encodedPayload.slice(0, 8)}`;
+    const prefix = `mw_live_${payload.slice(0, 8)}`;
 
     const portRangeStart = Number.parseInt(
       process.env.PORT_RANGE_START || "10000",

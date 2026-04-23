@@ -33,6 +33,11 @@ export async function POST(req) {
       return NextResponse.json({ valid: false, reason: "invalid_or_inactive" });
     }
 
+    // Reject if key is already connected on another server
+    if (apiKey.isConnected) {
+      return NextResponse.json({ valid: false, reason: "already_connected" });
+    }
+
     if (apiKey.expiresAt && apiKey.expiresAt < new Date()) {
       return NextResponse.json({ valid: false, reason: "expired" });
     }

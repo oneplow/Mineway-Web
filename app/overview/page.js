@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { useUser } from "@/components/UserProvider";
-import { Key, Activity, Copy, Plus, Globe, ShieldCheck, ChevronDown, CheckCircle2, AlertCircle, Trash2, RefreshCw, Server, Lock, Users, ShoppingCart } from "lucide-react";
+import { Key, Activity, Copy, Plus, Globe, ShieldCheck, ChevronDown, CheckCircle2, AlertCircle, Trash2, RefreshCw, Server, Lock, Users, ShoppingCart, Loader2 } from "lucide-react";
 import { REGIONS } from "@/lib/constants";
 import toast from "react-hot-toast";
 import PageLoader from "@/components/ui/PageLoader";
@@ -11,16 +11,18 @@ import { useRouter } from "next/navigation";
 import { useSettings } from "@/components/SettingsProvider";
 import { useSession, signOut } from "next-auth/react";
 
-function StatusBadge({ status, connectionInfo }) {
+function StatusBadge({ status, connectionInfo, dbConnected }) {
   if (status === "suspended") {
     return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-[#ff4d4d]"><span className="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-[#ff4d4d]" />SUSPENDED</span>;
   }
 
-  if (connectionInfo === undefined) {
+  const isActuallyConnected = connectionInfo?.connected || dbConnected;
+
+  if (connectionInfo === undefined && dbConnected === undefined) {
     return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider bg-blue-50 dark:bg-[#1e2330] text-blue-500 dark:text-[#8892a4]"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 dark:bg-[#4a5568] animate-pulse" />CHECKING...</span>;
   }
 
-  if (!connectionInfo?.connected) {
+  if (!isActuallyConnected) {
     return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider bg-gray-100 dark:bg-[#1e2330] text-gray-500 dark:text-[#8892a4]"><span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-[#4a5568]" />DISCONNECTED</span>;
   }
 
@@ -533,7 +535,10 @@ export default function OverviewPage() {
                                   {!k.isCustomPort && <span className="text-[#10d97e]">:{k.assignedPort || connectionStatus[k.id]?.assignedPort}</span>}
                                 </>
                               ) : (
-                                <span className="text-amber-500/70 dark:text-amber-400/60 text-[11px] font-bold">⏳ รอเชื่อมต่อปลั๊กอิน</span>
+                                <span className="flex items-center gap-1 text-amber-500/70 dark:text-amber-400/60 text-[11px] font-bold">
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  รอเชื่อมต่อปลั๊กอิน
+                                </span>
                               )}
                             </span>
                           </div>
@@ -546,7 +551,7 @@ export default function OverviewPage() {
                         <td className="p-5 font-mono text-[12px]">
                           <span className="text-[#10d97e]">{rxGB}</span> <span className="text-gray-300 dark:text-[#4a5568]">/</span> <span className="text-blue-500">{txGB} GB</span>
                         </td>
-                        <td className="p-5"><StatusBadge status={k.status} connectionInfo={connectionStatus[k.id]} /></td>
+                        <td className="p-5"><StatusBadge status={k.status} connectionInfo={connectionStatus[k.id]} dbConnected={k.isConnected} /></td>
                       </tr>
                     );
                   })}
@@ -570,7 +575,7 @@ export default function OverviewPage() {
                         <tr key={k.id} className="transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" onClick={() => setSelectedKeyForDrawer(k)}>
                           <td className="p-5 font-bold text-gray-900 dark:text-[#e8ecf4]">{k.name}</td>
                           <td className="p-5 text-gray-400">Shared Tunnel</td>
-                          <td className="p-5"><StatusBadge status={k.status} connectionInfo={connectionStatus[k.id]} /></td>
+                          <td className="p-5"><StatusBadge status={k.status} connectionInfo={connectionStatus[k.id]} dbConnected={k.isConnected} /></td>
                         </tr>
                       ))}
                     </tbody>

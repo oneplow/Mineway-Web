@@ -26,6 +26,7 @@ export default function UserClientTable({ initialUsers }) {
     setActiveModal(type);
     setDropdownOpen(null);
     if (type === "points") setInputValue("100"); // default top-up amount
+    if (type === "quota") setInputValue("1"); // default extra keys
     if (type === "role" && user) setInputValue(user.role === "ADMIN" ? "USER" : "ADMIN");
     if (type === "create") setFormData({ username: "", email: "", password: "", role: "USER" });
   };
@@ -75,10 +76,13 @@ export default function UserClientTable({ initialUsers }) {
         return;
       }
 
-      // Update Points or Role
+      // Update Points, Role, or Quota
       const payload = { userId: selectedUser.id };
       if (activeModal === "points") {
         payload.action = "adjustPoints";
+        payload.pointAmount = Number(inputValue);
+      } else if (activeModal === "quota") {
+        payload.action = "adjustQuota";
         payload.pointAmount = Number(inputValue);
       } else if (activeModal === "role") {
         payload.action = "updateRole";
@@ -202,6 +206,12 @@ export default function UserClientTable({ initialUsers }) {
                             <Diamond className="w-4 h-4 mr-3" /> Adjust Balance
                           </button>
                           <button
+                            onClick={() => openModal(u, 'quota')}
+                            className="w-full flex items-center px-5 py-3 text-sm text-gray-300 hover:bg-blue-500/10 hover:text-blue-400 transition-colors font-medium border-t border-gray-800"
+                          >
+                            <ShieldCheck className="w-4 h-4 mr-3" /> Adjust Max Tunnels
+                          </button>
+                          <button
                             onClick={() => openModal(u, 'role')}
                             className="w-full flex items-center px-5 py-3 text-sm text-gray-300 hover:bg-indigo-500/10 hover:text-indigo-400 transition-colors font-medium border-t border-gray-800"
                           >
@@ -244,6 +254,7 @@ export default function UserClientTable({ initialUsers }) {
             <div className="px-8 py-6 border-b border-gray-800 bg-gray-900/30">
                <h3 className="text-2xl font-extrabold text-white">
                  {activeModal === "points" && "Adjust Wallet Balance"}
+                 {activeModal === "quota" && "Adjust Tunnel Quota"}
                  {activeModal === "role" && "System Privileges"}
                  {activeModal === "delete" && "Terminate Account"}
                </h3>
@@ -255,7 +266,7 @@ export default function UserClientTable({ initialUsers }) {
             </div>
 
             <div className="p-8">
-              {activeModal === "points" && (
+               {activeModal === "points" && (
                 <div>
                   <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">Amount to Add/Subtract</label>
                   <div className="relative">
@@ -272,6 +283,23 @@ export default function UserClientTable({ initialUsers }) {
                     <p className="text-xs font-bold text-gray-500">Current Balance:</p>
                     <p className="text-sm font-black text-emerald-400">{selectedUser?.points.toLocaleString()} PTS</p>
                   </div>
+                </div>
+              )}
+
+              {activeModal === "quota" && (
+                <div>
+                  <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 px-1">Extra API Keys to Add/Subtract</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">QTY</span>
+                    <input
+                      type="number"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      placeholder="1, -1"
+                      className="w-full bg-[#161a22] border border-gray-800 rounded-xl pl-16 pr-4 py-4 text-white text-xl font-black focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all shadow-inner"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-3 px-1">Increase or decrease the amount of extra tunnels this user can create beyond their base plan.</p>
                 </div>
               )}
 
@@ -324,7 +352,7 @@ export default function UserClientTable({ initialUsers }) {
               </button>
               <button 
                 onClick={handleUpdate}
-                disabled={isProcessing || (activeModal === 'create' ? (!formData.email || !formData.password) : activeModal === 'points' || activeModal === 'role' ? !inputValue : false)}
+                disabled={isProcessing || (activeModal === 'create' ? (!formData.email || !formData.password) : ['points', 'role', 'quota'].includes(activeModal) ? !inputValue : false)}
                 className={`flex-1 py-3.5 rounded-xl font-extrabold hover:brightness-110 shadow-lg transition-all disabled:opacity-50 ${
                   activeModal === 'delete' 
                     ? 'bg-rose-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.2)]'

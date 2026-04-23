@@ -55,10 +55,9 @@ export async function PATCH(req, { params }) {
     const updateData = {};
     if (body.action === "reset") {
       const crypto = require("crypto");
-      const rawSecret = crypto.randomBytes(24).toString("base64url");
       
       let tunnelHost = null;
-      let tunnelPort = "443";
+      let tcpPort = process.env.TUNNEL_TCP_PORT || "8765";
       
       if (existing.domainId) {
         const domain = await prisma.domain.findUnique({ 
@@ -75,10 +74,6 @@ export async function PATCH(req, { params }) {
               if (!isIp && parsedNode.hostname !== "localhost") {
                 tunnelHost = parsedNode.hostname;
               }
-              // Use the port from the URL if explicitly specified
-              if (parsedNode.port) {
-                tunnelPort = parsedNode.port;
-              }
             } catch (e) { /* ignore */ }
           }
         }
@@ -91,13 +86,22 @@ export async function PATCH(req, { params }) {
         );
       }
 
-      const payloadBuffer = Buffer.from(`${tunnelHost}:${tunnelPort}|${rawSecret}`);
-      const encodedPayload = payloadBuffer.toString("base64url");
+      // New HMAC-signed key format: mw_live_<base64url(host:tcpPort)>.<signature>
+      const hmacSigningKey = process.env.HMAC_SIGNING_KEY;
+      if (!hmacSigningKey) {
+        return NextResponse.json({ error: "Server misconfiguration: HMAC_SIGNING_KEY not set" }, { status: 500 });
+      }
 
-      const rawKey = `mw_live_${encodedPayload}`;
+      const payload = Buffer.from(`${tunnelHost}:${tcpPort}`).toString("base64url");
+      const signature = crypto.createHmac("sha256", hmacSigningKey)
+        .update(payload)
+        .digest("base64url")
+        .slice(0, 22);
+
+      const rawKey = `mw_live_${payload}.${signature}`;
       
       updateData.keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
-      updateData.prefix = `mw_live_${encodedPayload.slice(0, 8)}`;
+      updateData.prefix = `mw_live_${payload.slice(0, 8)}`;
       
       const updated = await prisma.apiKey.update({ where: { id }, data: updateData });
       
