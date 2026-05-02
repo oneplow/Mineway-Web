@@ -6,8 +6,6 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-// --- Components ---
-
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text);
   toast.success("คัดลอกคำสั่งแล้ว!");
