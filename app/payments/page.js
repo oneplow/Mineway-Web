@@ -19,6 +19,8 @@ import { TOPUP_PACKAGES } from "@/lib/constants";
 import toast from "react-hot-toast";
 import PageLoader from "@/components/ui/PageLoader";
 
+const PROMPTPAY_DISABLED = true;
+
 function StatusBadge({ status }) {
   const cfg = {
     completed: { bg: "bg-[#10d97e]/10", text: "text-[#10d97e]", label: "สำเร็จ" },
@@ -41,7 +43,9 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
   const { refreshUser } = useUser();
 
-  const [paymentMethod, setPaymentMethod] = useState("promptpay"); // 'promptpay' or 'voucher'
+  const [paymentMethod, setPaymentMethod] = useState(
+    PROMPTPAY_DISABLED ? "voucher" : "promptpay"
+  ); // 'promptpay' or 'voucher'
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -104,6 +108,11 @@ export default function PaymentsPage() {
 
   // ─── Create PromptPay Order ─────────────────────────────────────────
   const handleCreateOrder = async () => {
+    if (PROMPTPAY_DISABLED) {
+      toast("ระบบสแกน QR PromptPay กำลังจะอัปเดตในอนาคต");
+      return;
+    }
+
     if (selectedPkgIndex === null && (!customAmount || isNaN(customAmount) || parseFloat(customAmount) < 10)) {
       toast.error("กรุณาเลือกแพ็กเกจ หรือระบุจำนวนเงินขั้นต่ำ 10 บาท");
       return;
@@ -332,13 +341,22 @@ export default function PaymentsPage() {
                 {/* Method Selection Tabs */}
                 <div className="bg-white/70 dark:bg-[#0a0c10]/90 backdrop-blur-xl p-2 rounded-[20px] ring-1 ring-black/5 dark:ring-white/5 flex shadow-xl">
                   <button
-                    onClick={() => setPaymentMethod("promptpay")}
+                    onClick={() => {
+                      if (PROMPTPAY_DISABLED) {
+                        toast("ระบบสแกน QR PromptPay กำลังจะอัปเดตในอนาคต");
+                        return;
+                      }
+                      setPaymentMethod("promptpay");
+                    }}
+                    disabled={PROMPTPAY_DISABLED}
                     className={`flex-1 py-4 flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all ${
-                      paymentMethod === "promptpay" ? "bg-[#10d97e] text-black shadow-lg" : "text-gray-500 hover:text-white"
+                      paymentMethod === "promptpay" && !PROMPTPAY_DISABLED
+                        ? "bg-[#10d97e] text-black shadow-lg"
+                        : "text-gray-500"
                     }`}
                   >
                     <QrCode size={18} />
-                    สแกน QR PromptPay
+                    {PROMPTPAY_DISABLED ? "PromptPay เร็ว ๆ นี้" : "สแกน QR PromptPay"}
                   </button>
                   <button
                     onClick={() => setPaymentMethod("voucher")}
@@ -365,6 +383,18 @@ export default function PaymentsPage() {
                   
                   {paymentMethod === "promptpay" ? (
                     <>
+                      {PROMPTPAY_DISABLED ? (
+                        <div className="rounded-[20px] border border-amber-200 bg-amber-50 p-5 text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+                          <div className="mb-2 flex items-center gap-2 text-sm font-bold">
+                            <AlertCircle size={18} />
+                            ระบบสแกน QR PromptPay ถูกปิดไว้ชั่วคราว
+                          </div>
+                          <p className="text-sm leading-relaxed text-amber-800 dark:text-amber-100/90">
+                            ฟีเจอร์นี้กำลังจะอัปเดตในอนาคต ตอนนี้กรุณาใช้ช่องทางเติมเงินแบบอื่นไปก่อน
+                          </p>
+                        </div>
+                      ) : null}
+
                       <h3 className="text-[16px] font-bold text-gray-900 dark:text-[#e8ecf4] mb-5 flex items-center gap-2">
                         <span className="w-6 h-6 rounded-full bg-[#10d97e] text-black flex items-center justify-center text-xs font-bold">1</span>
                         เลือกหรือระบุจำนวนเงิน (PromptPay)
@@ -416,11 +446,11 @@ export default function PaymentsPage() {
 
                       <button
                         onClick={handleCreateOrder}
-                        disabled={isProcessing || (selectedPkgIndex === null && !customAmount)}
+                        disabled={PROMPTPAY_DISABLED || isProcessing || (selectedPkgIndex === null && !customAmount)}
                         className={`w-full py-4 mt-8 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(16,217,126,0.3)] ${isProcessing ? "bg-[#10d97e]/50 cursor-not-allowed" : "bg-[#10d97e] hover:brightness-110 text-white dark:text-[#0a0c0f]"}`}
                       >
                         {isProcessing && <Loader2 className="w-5 h-5 animate-spin" />}
-                        ดำเนินการรับ QR Code
+                        {PROMPTPAY_DISABLED ? "กำลังจะอัปเดตในอนาคต" : "ดำเนินการรับ QR Code"}
                       </button>
                     </>
                   ) : paymentMethod === "voucher" ? (

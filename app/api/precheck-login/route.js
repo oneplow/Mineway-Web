@@ -68,11 +68,14 @@ export async function POST(req) {
     if (!user.emailVerified) {
       return NextResponse.json(
         {
+          success: false,
+          requiresVerification: true,
           error: "unverified_email",
-          message: "บัญชีของคุณยังไม่ได้ยืนยันอีเมล กรุณาตรวจสอบกล่องจดหมายและยืนยันอีเมลก่อนเข้าสู่ระบบ",
+          message:
+            "บัญชีของคุณยังไม่ได้ยืนยันอีเมล กรุณาตรวจสอบกล่องจดหมายและยืนยันอีเมลก่อนเข้าสู่ระบบ",
           email: user.email,
         },
-        { status: 403 }
+        { status: 200 }
       );
     }
 

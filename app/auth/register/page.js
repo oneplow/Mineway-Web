@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, User, ArrowRight, Sun, Moon, Pickaxe, AtSign, Sparkles } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/ThemeProvider";
 import Link from "next/link";
 import { useSettings } from "@/components/SettingsProvider";
 import { Turnstile } from "@marsidev/react-turnstile";
@@ -15,7 +15,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const settings = useSettings();
 
   useEffect(() => {
@@ -84,6 +84,8 @@ export default function RegisterPage() {
       if (!res.ok) {
         setGlobalError(data.message || "การสมัครสมาชิกขัดข้อง");
         setLoading(false);
+      } else if (data.requiresVerification) {
+        router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
       } else {
         const loginRes = await signIn("credentials", {
           redirect: false,
@@ -116,10 +118,10 @@ export default function RegisterPage() {
         {/* Theme Toggle */}
         <button
           type="button"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
           className="absolute top-6 right-6 p-2.5 rounded-xl border border-gray-200 dark:border-[#1e2330] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#111318] transition-all bg-white/50 dark:bg-[#0a0c10]/50 backdrop-blur-md shadow-sm"
         >
-          {mounted ? (theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />) : <Sun size={18} className="opacity-0" />}
+          {mounted ? (resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />) : <Sun size={18} className="opacity-0" />}
         </button>
 
         <div className="w-full max-w-[420px] animate-fade-in mt-12 mb-8">
@@ -253,7 +255,7 @@ export default function RegisterPage() {
               <div className="pt-2 sm:col-span-2 flex justify-center">
                 <Turnstile
                   siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                  options={{ theme: theme === "dark" ? "dark" : "light" }}
+                  options={{ theme: resolvedTheme === "dark" ? "dark" : "light" }}
                   onSuccess={(token) => setFormData({ ...formData, turnstileToken: token })}
                   onError={() => setGlobalError("ระบบตรวจสอบบอทขัดข้อง กรุณารีเฟรชหน้าเว็บ")}
                 />

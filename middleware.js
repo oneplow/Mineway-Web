@@ -7,21 +7,33 @@ const authPaths = ["/auth/login", "/auth/register"];
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const AUTH_WINDOW_MS = 10 * 60 * 1000;
 const REGISTRATION_WINDOW_MS = 15 * 60 * 1000;
+const RATE_LIMIT_MAX_KEYS = 10_000;
+const RATE_LIMIT_CLEANUP_INTERVAL_MS = 60 * 1000;
 
-const rateLimitStore = globalThis.__minewayRateLimitStore || new Map();
-if (!globalThis.__minewayRateLimitStore) {
-  globalThis.__minewayRateLimitStore = rateLimitStore;
+const rateLimitState = globalThis.__minewayRateLimitState || {
+  store: new Map(),
+  lastCleanupAt: 0,
+};
+if (!globalThis.__minewayRateLimitState) {
+  globalThis.__minewayRateLimitState = rateLimitState;
+}
+
+function normalizeIp(value) {
+  if (!value) {
+    return null;
+  }
+  const firstValue = value.split(",")[0]?.trim();
+  if (!firstValue) {
+    return null;
+  }
+  return firstValue.replace(/^\[|\]$/g, "");
 }
 
 function getClientIp(req) {
-  const forwardedFor = req.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0].trim();
-  }
-
   return (
-    req.headers.get("x-real-ip") ||
-    req.headers.get("cf-connecting-ip") ||
+    normalizeIp(req.headers.get("cf-connecting-ip")) ||
+    normalizeIp(req.headers.get("x-real-ip")) ||
+    normalizeIp(req.headers.get("x-forwarded-for")) ||
     "unknown"
   );
 }
@@ -54,6 +66,34 @@ function getRateLimitRule(pathname) {
   return null;
 }
 
+function cleanupRateLimitStore(now) {
+  if (now - rateLimitState.lastCleanupAt < RATE_LIMIT_CLEANUP_INTERVAL_MS) {
+    return;
+  }
+
+  rateLimitState.lastCleanupAt = now;
+
+  for (const [key, value] of rateLimitState.store.entries()) {
+    if (value.expiresAt <= now) {
+      rateLimitState.store.delete(key);
+    }
+  }
+
+  if (rateLimitState.store.size <= RATE_LIMIT_MAX_KEYS) {
+    return;
+  }
+
+  const overflow = rateLimitState.store.size - RATE_LIMIT_MAX_KEYS;
+  let removed = 0;
+  for (const key of rateLimitState.store.keys()) {
+    rateLimitState.store.delete(key);
+    removed += 1;
+    if (removed >= overflow) {
+      break;
+    }
+  }
+}
+
 function checkRateLimit(req) {
   const pathname = req.nextUrl.pathname;
   const rule = getRateLimitRule(pathname);
@@ -62,11 +102,13 @@ function checkRateLimit(req) {
   }
 
   const now = Date.now();
+  cleanupRateLimitStore(now);
+
   const key = `${pathname}:${getClientIp(req)}`;
-  const current = rateLimitStore.get(key);
+  const current = rateLimitState.store.get(key);
 
   if (!current || current.expiresAt <= now) {
-    rateLimitStore.set(key, {
+    rateLimitState.store.set(key, {
       count: 1,
       expiresAt: now + rule.windowMs,
     });
@@ -80,7 +122,7 @@ function checkRateLimit(req) {
   }
 
   current.count += 1;
-  rateLimitStore.set(key, current);
+  rateLimitState.store.set(key, current);
 
   return {
     limited: current.count > rule.limit,

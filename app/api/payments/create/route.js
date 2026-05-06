@@ -14,8 +14,17 @@ const TOPUP_PACKAGES = [
   { points: 1200, price: 1200, bonus: 100 },
 ];
 
+const PROMPTPAY_DISABLED = true;
+
 export async function POST(req) {
   try {
+    if (PROMPTPAY_DISABLED) {
+      return NextResponse.json(
+        { error: "ระบบสแกน QR PromptPay กำลังจะอัปเดตในอนาคต" },
+        { status: 503 }
+      );
+    }
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -12,10 +12,11 @@ import { Turnstile } from "@marsidev/react-turnstile";
 
 export default function LoginPage() {
   const [globalError, setGlobalError] = useState("");
+  const [unverifiedEmail, setUnverifiedEmail] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const settings = useSettings();
   const hydrated = useHydrated();
 
@@ -24,6 +25,20 @@ export default function LoginPage() {
     password: "",
     turnstileToken: "",
   });
+
+  const redirectToVerifyEmail = (email) => {
+    const targetEmail = email?.trim() || formData.identifier?.trim();
+    const targetUrl = targetEmail
+      ? `/auth/verify-email?email=${encodeURIComponent(targetEmail)}`
+      : "/auth/verify-email";
+
+    if (typeof window !== "undefined") {
+      window.location.assign(targetUrl);
+      return;
+    }
+
+    router.push(targetUrl);
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -41,6 +56,7 @@ export default function LoginPage() {
 
   const handleLoginSubmit = async () => {
     setGlobalError("");
+    setUnverifiedEmail("");
     setFieldErrors({});
 
     const errs = validate();
@@ -65,9 +81,16 @@ export default function LoginPage() {
 
       const preCheckData = await preCheck.json();
 
+      if (preCheckData.requiresVerification) {
+        setLoading(false);
+        redirectToVerifyEmail(preCheckData.email);
+        return;
+      }
+
       if (!preCheck.ok) {
         if (preCheckData.error === "unverified_email") {
           setGlobalError("บัญชีของคุณยังไม่ได้ยืนยันอีเมล กรุณาตรวจสอบกล่องจดหมายและยืนยันอีเมลก่อนเข้าสู่ระบบ");
+          setUnverifiedEmail(preCheckData.email || formData.identifier);
         } else {
           setGlobalError(preCheckData.message || "ชื่อผู้ใช้งาน, อีเมล หรือ รหัสผ่านไม่ถูกต้อง");
         }
@@ -163,10 +186,10 @@ export default function LoginPage() {
         {/* Theme Toggle */}
         <button
           type="button"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
           className="absolute top-6 right-6 p-2.5 rounded-xl border border-gray-200 dark:border-[#1e2330] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#111318] transition-all bg-white/50 dark:bg-[#0a0c10]/50 backdrop-blur-md shadow-sm"
         >
-          {hydrated ? (theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />) : <Sun size={18} className="opacity-0" />}
+          {hydrated ? (resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />) : <Sun size={18} className="opacity-0" />}
         </button>
 
         <div className="w-full max-w-[420px] animate-fade-in">
@@ -186,9 +209,21 @@ export default function LoginPage() {
           </div>
 
           {globalError && (
-            <div className="mb-6 px-4 py-3.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm font-semibold flex items-center gap-3 animate-shake">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></div>
-              {globalError}
+            <div className="mb-6 px-4 py-3.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm font-semibold animate-shake">
+              <div className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 mt-2"></div>
+                <div className="flex-1">
+                  <p>{globalError}</p>
+                  {unverifiedEmail && (
+                    <Link
+                      href={`/auth/verify-email?email=${encodeURIComponent(unverifiedEmail)}`}
+                      className="mt-3 inline-flex text-xs font-bold text-red-700 dark:text-red-300 underline underline-offset-4"
+                    >
+                      ไปหน้ายืนยันอีเมล / ส่งลิงก์ใหม่
+                    </Link>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -227,7 +262,7 @@ export default function LoginPage() {
                 {fieldErrors.password && fieldErrors.password !== " " ? (
                   <span className="text-xs text-red-500 font-medium">{fieldErrors.password}</span>
                 ) : (
-                  <Link href="#" className="text-xs font-semibold text-[#10d97e] hover:text-[#0ea865] transition-colors">ลืมรหัสผ่าน?</Link>
+                  <Link href="/auth/forgot-password" className="text-xs font-semibold text-[#10d97e] hover:text-[#0ea865] transition-colors">ลืมรหัสผ่าน?</Link>
                 )}
               </div>
               <div className="relative group">
@@ -252,7 +287,7 @@ export default function LoginPage() {
               <div className="pt-2 flex justify-center">
                 <Turnstile
                   siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                  options={{ theme: theme === "dark" ? "dark" : "light" }}
+                  options={{ theme: resolvedTheme === "dark" ? "dark" : "light" }}
                   onSuccess={(token) => setFormData({ ...formData, turnstileToken: token })}
                   onError={() => setGlobalError("ระบบตรวจสอบบอทขัดข้อง กรุณารีเฟรชหน้าเว็บ")}
                 />

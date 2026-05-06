@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/auth";
 import {
+  getEmailSendErrorMessage,
   isEmailVerificationConfigured,
   issueAndSendVerificationEmail,
 } from "@/lib/email-verification";
@@ -105,7 +106,20 @@ export async function POST(req) {
       },
     });
 
-    await issueAndSendVerificationEmail(email);
+    try {
+      await issueAndSendVerificationEmail(email);
+    } catch (emailError) {
+      await prisma.$transaction([
+        prisma.verificationToken.deleteMany({ where: { identifier: email } }),
+        prisma.user.delete({ where: { id: newUser.id } }),
+      ]);
+
+      console.error("Registration email error:", emailError);
+      return NextResponse.json(
+        { message: getEmailSendErrorMessage(emailError) },
+        { status: 503 }
+      );
+    }
 
     return NextResponse.json(
       {
