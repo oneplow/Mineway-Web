@@ -154,21 +154,22 @@ export default function OverviewPage() {
 
   const fetchData = async () => {
     try {
-      const [keysRes, domainsRes] = await Promise.all([
-        fetch("/api/keys?t=" + Date.now(), { cache: "no-store" }),
-        fetch("/api/domains?t=" + Date.now(), { cache: "no-store" })
-      ]);
-      if (keysRes.ok) {
-        const data = await keysRes.json();
+      const bootstrapRes = await fetch(
+        "/api/overview/bootstrap?t=" + Date.now(),
+        { cache: "no-store" }
+      );
+
+      if (bootstrapRes.ok) {
+        const data = await bootstrapRes.json();
         setKeys(data.keys || []);
         setSharedKeys(data.sharedKeys || []);
-      }
-      if (domainsRes.ok) {
-        const d = await domainsRes.json();
-        setDomains(d);
-        if (d.length > 0) {
-          const defaultDomain = d.find(dm => dm.isDefault) || d[0];
-          setForm(prev => ({ ...prev, domainId: defaultDomain.id }));
+
+        const nextDomains = data.domains || [];
+        setDomains(nextDomains);
+        if (nextDomains.length > 0) {
+          const defaultDomain =
+            nextDomains.find((dm) => dm.isDefault) || nextDomains[0];
+          setForm((prev) => ({ ...prev, domainId: defaultDomain.id }));
         }
       }
     } catch (err) {
