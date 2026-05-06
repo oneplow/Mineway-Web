@@ -3,16 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { useUser } from '@/components/UserProvider';
 import { Zap, Server, Shield, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import PageLoader from '@/components/ui/PageLoader';
 import Modal from '@/components/ui/Modal';
 
 export default function PlansPage() {
-  const [user, setUser] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { refreshUser } = useUser();
+  const { user, loading: userLoading, refreshUser } = useUser();
 
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -21,23 +19,13 @@ export default function PlansPage() {
   const router = useRouter();
 
   const fetchData = async () => {
-    let shouldRedirect = false;
     try {
-      const [uRes, pRes] = await Promise.all([
-        fetch("/api/user?t=" + Date.now(), { cache: "no-store" }),
-        fetch("/api/plans?t=" + Date.now(), { cache: "no-store" })
-      ]);
-      if (uRes.status === 401 || uRes.status === 404) {
-        shouldRedirect = true;
-        await signOut({ callbackUrl: "/auth/login", redirect: true });
-        return;
-      }
-      if (uRes.ok) setUser(await uRes.json());
+      const pRes = await fetch("/api/plans?t=" + Date.now(), { cache: "no-store" });
       if (pRes.ok) setPlans(await pRes.json());
     } catch (err) {
       console.error(err);
     } finally {
-      if (!shouldRedirect) setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -83,7 +71,7 @@ export default function PlansPage() {
     }
   };
 
-  if (loading) return <PageLoader />;
+  if (loading || userLoading) return <PageLoader />;
 
   return (
     <div className="w-full">

@@ -38,10 +38,9 @@ function StatusBadge({ status }) {
 }
 
 export default function PaymentsPage() {
-  const [user, setUser] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { refreshUser } = useUser();
+  const { user, loading: userLoading, refreshUser } = useUser();
 
   const [paymentMethod, setPaymentMethod] = useState(
     PROMPTPAY_DISABLED ? "voucher" : "promptpay"
@@ -66,8 +65,7 @@ export default function PaymentsPage() {
 
   const fetchData = async () => {
     try {
-      const [uRes, tRes] = await Promise.all([fetch("/api/user"), fetch("/api/payments")]);
-      if (uRes.ok) setUser(await uRes.json());
+      const tRes = await fetch("/api/payments");
       if (tRes.ok) setTransactions(await tRes.json());
     } catch (err) {
       console.error(err);
@@ -313,7 +311,7 @@ export default function PaymentsPage() {
     setVoucherUrl("");
   };
 
-  if (loading) return <PageLoader />;
+  if (loading || userLoading) return <PageLoader />;
 
   return (
     <div className="w-full">

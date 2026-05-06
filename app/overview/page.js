@@ -9,7 +9,6 @@ import Modal from "@/components/ui/Modal";
 import KeyDetailsDrawer from "@/components/ui/KeyDetailsDrawer";
 import { useRouter } from "next/navigation";
 import { useSettings } from "@/components/SettingsProvider";
-import { useSession, signOut } from "next-auth/react";
 
 function StatusBadge({ status, connectionInfo, dbConnected }) {
   if (status === "suspended") {
@@ -58,7 +57,7 @@ export default function OverviewPage() {
   const [domains, setDomains] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { refreshUser } = useUser();
+  const { user: currentUser, loading: userLoading, refreshUser } = useUser();
   const settings = useSettings();
 
   const [selectedKeyForDrawer, setSelectedKeyForDrawer] = useState(null);
@@ -149,25 +148,16 @@ export default function OverviewPage() {
   const [isBuyingSlot, setIsBuyingSlot] = useState(false);
   const extraKeyPrice = parseInt(settings?.extraKeyPrice) || 200;
 
+  useEffect(() => {
+    setUser(currentUser || null);
+  }, [currentUser]);
+
   const fetchData = async () => {
-    let shouldRedirect = false;
     try {
-      const [userRes, keysRes, domainsRes] = await Promise.all([
-        fetch("/api/user?t=" + Date.now(), { cache: "no-store" }),
+      const [keysRes, domainsRes] = await Promise.all([
         fetch("/api/keys?t=" + Date.now(), { cache: "no-store" }),
         fetch("/api/domains?t=" + Date.now(), { cache: "no-store" })
       ]);
-
-      if (userRes.status === 401 || userRes.status === 404) {
-        shouldRedirect = true;
-        await signOut({ callbackUrl: "/auth/login", redirect: true });
-        return;
-      }
-
-      if (userRes.ok) {
-        const u = await userRes.json();
-        setUser(u);
-      }
       if (keysRes.ok) {
         const data = await keysRes.json();
         setKeys(data.keys || []);
@@ -185,7 +175,7 @@ export default function OverviewPage() {
       console.error(err);
       toast.error("ดึงข้อมูลหลักล้มเหลว");
     } finally {
-      if (!shouldRedirect) setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -400,7 +390,7 @@ export default function OverviewPage() {
     }
   };
 
-  if (loading) return <PageLoader />;
+  if (loading || userLoading) return <PageLoader />;
 
   const totalMaxKeys = user?.stats?.maxKeys || (user?.plan?.maxKeys || 1) + (user?.extraKeys || 0);
   const atLimit = keys.length >= totalMaxKeys;

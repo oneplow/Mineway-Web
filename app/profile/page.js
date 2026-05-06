@@ -1,12 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useUser } from "@/components/UserProvider";
 import { User, KeyRound, Mail, LogOut, Link as LinkIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { signOut } from "next-auth/react";
 
 export default function ProfilePage() {
-  const router = useRouter();
+  const { user, loading: userLoading, refreshUser } = useUser();
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,32 +20,24 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    fetchUserData();
-  }, []);
-
-  const fetchUserData = async () => {
-    let shouldRedirect = false;
-    try {
-      const res = await fetch("/api/user");
-      if (res.status === 401 || res.status === 404) {
-        shouldRedirect = true;
-        await signOut({ callbackUrl: '/auth/login', redirect: true });
-        return;
-      }
-      const data = await res.json();
-      setUserData(data);
-      setFormData(prev => ({
-        ...prev,
-        username: data.username || "",
-        image: data.image || ""
-      }));
-    } catch (err) {
-      console.error(err);
-      toast.error("ดึงข้อมูลล้มเหลว");
-    } finally {
-      if (!shouldRedirect) setIsLoading(false);
+    if (userLoading) {
+      return;
     }
-  };
+
+    if (!user) {
+      setUserData(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setUserData(user);
+    setFormData(prev => ({
+      ...prev,
+      username: user.username || "",
+      image: user.image || ""
+    }));
+    setIsLoading(false);
+  }, [user, userLoading]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -74,7 +66,15 @@ export default function ProfilePage() {
 
       toast.success("อัพเดทโปรไฟล์เรียบร้อย");
       setFormData(prev => ({ ...prev, currentPassword: "", newPassword: "", confirmPassword: "" }));
-      fetchUserData(); // refresh
+      const refreshedUser = await refreshUser();
+      if (refreshedUser) {
+        setUserData(refreshedUser);
+        setFormData(prev => ({
+          ...prev,
+          username: refreshedUser.username || "",
+          image: refreshedUser.image || "",
+        }));
+      }
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -82,7 +82,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#0a0c0f]">
         <div className="w-10 h-10 border-4 border-gray-200 dark:border-[#1e2330] border-t-blue-500 rounded-full animate-spin"></div>
