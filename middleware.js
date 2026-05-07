@@ -146,6 +146,24 @@ function attachRateLimitHeaders(response, rateLimit) {
   return response;
 }
 
+function hasAuthSessionCookie(req) {
+  const sessionCookieNames = [
+    "authjs.session-token",
+    "__Secure-authjs.session-token",
+    "next-auth.session-token",
+    "__Secure-next-auth.session-token",
+  ];
+
+  return req.cookies
+    .getAll()
+    .some(({ name }) =>
+      sessionCookieNames.some(
+        (sessionCookieName) =>
+          name === sessionCookieName || name.startsWith(`${sessionCookieName}.`)
+      )
+    );
+}
+
 export default async function middleware(req) {
   const { pathname } = req.nextUrl;
 
@@ -180,6 +198,25 @@ export default async function middleware(req) {
     return attachRateLimitHeaders(NextResponse.next(), rateLimit);
   }
 
+  // Fast-path: check for session cookie BEFORE calling auth().
+  // This avoids the expensive auth() call (Prisma cold-start / DB round-trip)
+  // when we can already determine the result from cookie presence alone.
+  const hasSessionCookie = hasAuthSessionCookie(req);
+
+  // No cookie + auth page → just render the login/register page immediately
+  if (isAuthPage && !hasSessionCookie) {
+    return attachRateLimitHeaders(NextResponse.next(), rateLimit);
+  }
+
+  // No cookie + protected page → redirect to login immediately (no DB call needed)
+  if (isProtected && !hasSessionCookie) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/auth/login";
+    url.searchParams.set("callbackUrl", pathname);
+    return attachRateLimitHeaders(NextResponse.redirect(url), rateLimit);
+  }
+
+  // Cookie exists — verify it by calling auth()
   const session = await auth();
 
   if (isProtected && !session) {

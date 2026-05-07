@@ -40,6 +40,26 @@ export default function LoginPage() {
     router.push(targetUrl);
   };
 
+  const getSafeCallbackUrl = () => {
+    const callbackUrl = new URLSearchParams(window.location.search).get("callbackUrl");
+    if (!callbackUrl) {
+      return "/overview";
+    }
+
+    try {
+      const target = new URL(callbackUrl, window.location.origin);
+      if (target.origin !== window.location.origin) {
+        return "/overview";
+      }
+
+      return `${target.pathname}${target.search}${target.hash}`;
+    } catch {
+      return callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+        ? callbackUrl
+        : "/overview";
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (fieldErrors[e.target.name]) {
@@ -114,7 +134,7 @@ export default function LoginPage() {
           window.history.replaceState(null, '', '/auth/login');
         }
       } else if (res?.ok) {
-        router.push("/overview");
+        window.location.replace(getSafeCallbackUrl());
       }
     } catch (err) {
       setGlobalError("เกิดข้อผิดพลาดที่ไม่รู้จัก");
