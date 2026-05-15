@@ -42,14 +42,16 @@ async function assignAvailablePort(apiKeyId) {
     }
 
     try {
-      const updatedKey = await prisma.apiKey.update({
+      const result = await prisma.apiKey.updateMany({
         where: { id: apiKeyId, assignedPort: null },
         data: { assignedPort, lastUsedAt: new Date() },
-        select: { assignedPort: true },
       });
-      return updatedKey.assignedPort;
+      if (result.count === 1) {
+        return assignedPort;
+      }
+      throw new Error("P2025"); // Simulate missing record if count is 0
     } catch (error) {
-      if (isMissingRecordError(error)) {
+      if (error.message === "P2025" || isMissingRecordError(error)) {
         const currentKey = await prisma.apiKey.findUnique({
           where: { id: apiKeyId },
           select: { assignedPort: true },
@@ -75,14 +77,16 @@ async function assignAvailablePort(apiKeyId) {
     }
 
     try {
-      const updatedKey = await prisma.apiKey.update({
+      const result = await prisma.apiKey.updateMany({
         where: { id: apiKeyId, assignedPort: null },
         data: { assignedPort, lastUsedAt: new Date() },
-        select: { assignedPort: true },
       });
-      return updatedKey.assignedPort;
+      if (result.count === 1) {
+        return assignedPort;
+      }
+      throw new Error("P2025"); // Simulate missing record
     } catch (error) {
-      if (isMissingRecordError(error)) {
+      if (error.message === "P2025" || isMissingRecordError(error)) {
         const currentKey = await prisma.apiKey.findUnique({
           where: { id: apiKeyId },
           select: { assignedPort: true },
@@ -137,7 +141,7 @@ export async function POST(req) {
     const plan = apiKey.user.plan;
     if (plan) {
       const limitBytes = BigInt(plan.bandwidthGB) * 1_000_000_000n;
-      const usedBytes = apiKey.rxBytes + apiKey.txBytes;
+      const usedBytes = BigInt(apiKey.rxBytes) + BigInt(apiKey.txBytes);
       if (usedBytes >= limitBytes) {
         return NextResponse.json({ valid: false, reason: "quota_exceeded" });
       }
@@ -174,7 +178,7 @@ export async function POST(req) {
       plan: plan?.name ?? "free",
       maxPlayers: plan?.maxPlayers ?? 5,
       bandwidthRemaining: plan
-        ? Number(BigInt(plan.bandwidthGB) * 1_000_000_000n - (apiKey.rxBytes + apiKey.txBytes))
+        ? Number(BigInt(plan.bandwidthGB) * 1_000_000_000n - (BigInt(apiKey.rxBytes) + BigInt(apiKey.txBytes)))
         : null,
     });
   } catch (error) {
