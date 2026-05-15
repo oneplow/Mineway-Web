@@ -167,12 +167,12 @@ export default function DocsPage() {
                       </div>
                     </a>
 
-                    <a href="/jars/mineway-proxy.jar" className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-zinc-400 to-zinc-600 p-[1px] transition-all hover:-translate-y-0.5">
+                    {/* <a href="/jars/mineway-proxy.jar" className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-zinc-400 to-zinc-600 p-[1px] transition-all hover:-translate-y-0.5">
                       <div className="flex h-full items-center gap-3 rounded-[11px] bg-white dark:bg-[#18181b] p-3 transition-colors group-hover:bg-transparent">
                         <div className="p-2 rounded-lg bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 group-hover:bg-white/20 group-hover:text-white"><Box size={18} /></div>
                         <span className="font-bold text-zinc-900 dark:text-white group-hover:text-white">Velocity / Bungee</span>
                       </div>
-                    </a>
+                    </a> */}
 
                     <a href="/jars/mineway-forge.jar" className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-[#e4a663] to-[#c88239] p-[1px] transition-all hover:-translate-y-0.5">
                       <div className="flex h-full items-center gap-3 rounded-[11px] bg-white dark:bg-[#18181b] p-3 transition-colors group-hover:bg-transparent">
