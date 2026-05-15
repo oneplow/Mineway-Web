@@ -114,10 +114,27 @@ export default function Home() {
                 </div>
               </div>
               <div className="p-5 text-[13px] font-mono leading-relaxed text-slate-300">
-                <div className="text-slate-500 mb-3"># Configuration</div>
-                <div className="flex"><span className="text-cyan-400 w-32">api_key:</span><span className="text-emerald-400">"mw_live_a8f2k..."</span></div>
-                <div className="flex"><span className="text-cyan-400 w-32">region:</span><span className="text-amber-300">"ap-southeast-1"</span></div>
-                <div className="flex mb-4"><span className="text-cyan-400 w-32">auto_reconnect:</span><span className="text-purple-400">true</span></div>
+                <div className="text-slate-500"># ──────────────────────────────────────────</div>
+                <div className="text-slate-500">#  Mineway Plugin Configuration</div>
+                <div className="text-slate-500 mb-3"># ──────────────────────────────────────────</div>
+                
+                <div className="text-slate-500"># API Key จากหน้า Dashboard ที่ https://mineway.cloud</div>
+                <div className="text-slate-500 mb-1"># สร้าง Key ใหม่ได้ที่ Settings &gt; API Keys</div>
+                <div className="flex mb-4 break-all"><span className="text-cyan-400 min-w-fit">api_key:</span> <span className="text-emerald-400 ml-2">"mw_live_dGgxLm1pbmV3YXkuY2xvdWQ6ODc2NTo4MDgwfDJWMU96QlBUa3otNGxiRWRJQ0hQT1JpQmFiNGJKMndW"</span></div>
+
+                <div className="text-slate-500"># [Optional] ระบุเป้าหมายพอร์ต หากเซิร์ฟเวอร์ของคุณไม่ได้ใช้พอร์ตเริ่มต้น</div>
+                <div className="text-slate-500 mb-1"># ค่าเริ่มต้น: Java = 25565, Bedrock = 19132</div>
+                <div className="flex"><span className="text-cyan-400">target_tcp_port:</span> <span className="text-purple-400 ml-2">25565</span></div>
+                <div className="flex mb-4"><span className="text-cyan-400">target_udp_port:</span> <span className="text-purple-400 ml-2">19132</span></div>
+
+                <div className="text-slate-500"># เชื่อมต่อใหม่อัตโนมัติถ้าหลุด</div>
+                <div className="flex mb-4"><span className="text-cyan-400">auto_reconnect:</span> <span className="text-purple-400 ml-2">true</span></div>
+
+                <div className="text-slate-500"># กี่วินาทีก่อน reconnect</div>
+                <div className="flex mb-4"><span className="text-cyan-400">reconnect_delay:</span> <span className="text-purple-400 ml-2">5</span></div>
+
+                <div className="text-slate-500"># แสดง debug log (สำหรับ troubleshoot)</div>
+                <div className="flex mb-4"><span className="text-cyan-400">debug:</span> <span className="text-purple-400 ml-2">false</span></div>
 
                 <div className="mt-4 pt-4 border-t border-white/5">
                   <div className="text-slate-500 flex items-center gap-2 mb-1 text-xs">
