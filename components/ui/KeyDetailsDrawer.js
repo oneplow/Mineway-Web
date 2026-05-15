@@ -189,11 +189,20 @@ export default function KeyDetailsDrawer({ isOpen, onClose, apiKey, onCopy, onTo
                 <div className="text-[12px] font-bold text-gray-500 dark:text-[#8892a4] uppercase tracking-widest mb-3">ที่อยู่สำหรับเชื่อมต่อ</div>
                 <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#0a0c0f] p-3 rounded-xl border border-gray-100 dark:border-[#1e2330]">
                   <code className="font-mono text-[14px] text-[#10d97e] flex-1 break-all select-all">
-                    {displayKey.subdomain ? `${displayKey.subdomain}.${displayKey.domain?.domain || 'mineway.cloud'}` : (displayKey.domain?.domain || 'mineway.cloud')}
-                    {displayKey.assignedPort && !displayKey.isCustomPort ? `:${displayKey.assignedPort}` : ''}
+                    {(() => {
+                      const domainStr = displayKey.domain?.domain || 'mineway.cloud';
+                      const sub = displayKey.subdomain || '';
+                      let address = sub ? (sub.endsWith(domainStr) ? sub : `${sub}.${domainStr}`) : domainStr;
+                      return `${address}${displayKey.assignedPort && !displayKey.isCustomPort ? `:${displayKey.assignedPort}` : ''}`;
+                    })()}
                   </code>
                   <button
-                    onClick={() => copyToClipboard(`${displayKey.subdomain ? `${displayKey.subdomain}.${displayKey.domain?.domain || 'mineway.cloud'}` : (displayKey.domain?.domain || 'mineway.cloud')}${displayKey.assignedPort && !displayKey.isCustomPort ? `:${displayKey.assignedPort}` : ''}`, "คัดลอกที่อยู่ไอพีเชื่อมต่อแล้ว!")}
+                    onClick={() => {
+                      const domainStr = displayKey.domain?.domain || 'mineway.cloud';
+                      const sub = displayKey.subdomain || '';
+                      let address = sub ? (sub.endsWith(domainStr) ? sub : `${sub}.${domainStr}`) : domainStr;
+                      copyToClipboard(`${address}${displayKey.assignedPort && !displayKey.isCustomPort ? `:${displayKey.assignedPort}` : ''}`, "คัดลอกที่อยู่ไอพีเชื่อมต่อแล้ว!");
+                    }}
                     className="p-2 text-gray-500 dark:text-[#8892a4] bg-white dark:bg-[#111318] hover:text-[#10d97e] dark:hover:text-[#10d97e] hover:shadow-sm border border-gray-200 dark:border-[#1e2330] rounded-lg transition-all"
                     title="คัดลอกที่อยู่"
                   >
