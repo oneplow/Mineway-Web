@@ -117,10 +117,10 @@ export default function Home() {
                 <div className="text-slate-500"># ──────────────────────────────────────────</div>
                 <div className="text-slate-500">#  Mineway Plugin Configuration</div>
                 <div className="text-slate-500 mb-3"># ──────────────────────────────────────────</div>
-                
+
                 <div className="text-slate-500"># API Key จากหน้า Dashboard ที่ https://mineway.cloud</div>
                 <div className="text-slate-500 mb-1"># สร้าง Key ใหม่ได้ที่ Settings &gt; API Keys</div>
-                <div className="flex mb-4 break-all"><span className="text-cyan-400 min-w-fit">api_key:</span> <span className="text-emerald-400 ml-2">"mw_live_dGgxLm1pbmV3YXkuY2xvdWQ6ODc2NTo4MDgwfDJWMU96QlBUa3otNGxiRWRJQ0hQT1JpQmFiNGJKMndW"</span></div>
+                <div className="flex mb-4 break-all"><span className="text-cyan-400 min-w-fit">api_key:</span> <span className="text-emerald-400 ml-2">"mw_live_dGgxLm...."</span></div>
 
                 <div className="text-slate-500"># [Optional] ระบุเป้าหมายพอร์ต หากเซิร์ฟเวอร์ของคุณไม่ได้ใช้พอร์ตเริ่มต้น</div>
                 <div className="text-slate-500 mb-1"># ค่าเริ่มต้น: Java = 25565, Bedrock = 19132</div>
